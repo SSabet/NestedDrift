@@ -1,4 +1,4 @@
-% Created 2024-01-10 Wed 23:11
+% Created 2024-01-10 Wed 23:43
 % Intended LaTeX compiler: pdflatex
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
@@ -28,11 +28,11 @@
 
 \tableofcontents
 
+\newpage
 These notes are based on the problem and code for the "Two Assets and Kinked Adjustment Costs," on Ben's Website.
 
-\newpage
 \section{Household's Problem}
-\label{sec:org14a96c4}
+\label{sec:orgfa13185}
 \begin{itemize}
 \item The household solves \[\operatorname*{max}_{\{c_t,d_{t}\}_{t\ge 0}} \mathbb{E}_0 \int_{0}^{\infty}e^{-\rho t}u(c_{t})d t\]
 \item subject to \[\begin{array}{l} {\displaystyle{\dot{b}}_{t}=(1-\xi)w z_{t}+r^{b}(b_{t})b_{t}-d_{t}-\chi(d_{t},a_{t})-c_{t}}\\ {{\displaystyle{\dot{a}}_{t}=r^{a}a_{t}+\xi w z_{t}+d_{t}}}&{{}}\end{array}\]
@@ -64,7 +64,7 @@ These notes are based on the problem and code for the "Two Assets and Kinked Adj
 
 
 \section{Recursive Formulation}
-\label{sec:org84330fc}
+\label{sec:orgd285960}
 The HJB equation is
 \begin{align}
 \label{eq:hjb}
@@ -108,7 +108,7 @@ d=\left(\frac{V_{a}}{u'(c)}-1+\chi_{0}\right)^{-}\frac{a}{\chi_{1}}+\left(\frac{
 
 
 \section{Numerical Solution Without Drift-Splitting}
-\label{sec:orgd295c9d}
+\label{sec:orgd93c8f7}
 Kaplan et. al. propose a scheme in which the drift for the liquid asset \(b\) is split in two parts, to upwind the finite difference in a way that is both simple (in the sense of avoiding non-linearities) and monotone. Importantly, the way the boundary conditions are handled in the accompanying code seem also to be consistent with the drift-split idea.\\[0pt]
 
 In this document we explain the details for an upwind implicit scheme without splitting the drift in two, and with handling of boundary conditions in the traditional sense (e.g. as done in \cite{achdou2022income}). The aim is to try the traditional method of building monotone schemes to see whether that would be more robust, particularly at the boundaries, for other problems involving the same two-asset structure.
@@ -124,7 +124,7 @@ In this document we explain the details for an upwind implicit scheme without sp
 
 
 \subsection{United We Upwind!}
-\label{sec:orga0f0c98}
+\label{sec:orga50c78c}
 Here is the general algorithm to upwind without split (the traditional way); given \(V^{n-1}(b_i,a_j,z_k)\) (hereafter \(V_{i,j,k}^{n-1}\) for more concise notation following Kaplan et. al.)
 \begin{enumerate}
 \item Start with \(c^{n,F}\) (that is, use \(V_b^{n,F}\) to update the consumption policy \(c^n\)).
@@ -140,7 +140,7 @@ Here is the general algorithm to upwind without split (the traditional way); giv
 \end{enumerate}
 
 \subsection{Note on Implementation and Comparison with Kaplan et. al. Code}
-\label{sec:org922707c}
+\label{sec:org5b4b825}
 How to implement this algorithm, particularly to make it amenable to vectorisation that is important for some languages including Matlab? And how does the scheme compare with what the scheme suggested in Kaplan et. al.? For now, we ignore step 5 (\(\dot{b} = 0\)) and focus on steps 2-4.
 
 \begin{itemize}
@@ -165,7 +165,7 @@ d &= d^B \mathbb{I}_{\left[ c^B + g(d^B,a) > (1-\xi) w z + r^bb \right]} + d^F \
 
 
 \subsubsection{Comparison with Kaplan et. al.}
-\label{sec:orgab1cd51}
+\label{sec:org14444ff}
 \begin{itemize}
 \item Obviously, there is no splitting. The indicators which tell us whether to use \(d^B\) or \(d^F\) are the same indicators telling us whether to use \(c^B\) or \(c^F\). To me this sounds neater and more inline with traditional upwinding.
 \item The idea here is \textbf{to nest, rather than split} the two upwindings. I.e., upwinding with respect to a-drift is taken care of when forming \(d^B, d^F\) (inner level). Then at the outer level, the indicator just forms with respect to sign of \(\dot{b}\).
@@ -174,7 +174,7 @@ d &= d^B \mathbb{I}_{\left[ c^B + g(d^B,a) > (1-\xi) w z + r^bb \right]} + d^F \
 \end{itemize}
 
 \subsection{Updating Policies for \(\dot{b}=0\)}
-\label{sec:orgfcc4ceb}
+\label{sec:org0ad74ce}
 There are cases in which we want to solve for the optimal policies, given \(\dot{b}=0\). This particularly matters for enforcing the borrowing constraint at the boundary of the grid, but also because, as discussed above, neither \(V_b^{n,F}\) nor \(V_b^{n,B}\) leads to consistent b-drifts. 
 \begin{itemize}
 \item In this case the HJB simplifies to
@@ -211,7 +211,7 @@ Now to update the optimal policy for the case of \(\dot{b}=0\), consider these c
 \emph{Again, this can be vectorised similar to above.}
 
 \subsection{Updating Policies for \(\dot{a}=0\)}
-\label{sec:orgdc9dd73}
+\label{sec:orgad3b140}
 Which we use at a-boundaries or where neither \(V_a^F\) nor \(V_a^B\) leads to consistent policies. This bit is straightforward. Set \(d = - (r^a a + \xi w z)\), then solve for \(c\) by upwinding with respect to \(\dot{b}\).
 
 \textbf{Note:} As long as \(V\) is concave and monotone in each of assets separately, the above scheme is unambiguous, monotone and upwind (in the conventional sense!)
