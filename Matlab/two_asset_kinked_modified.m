@@ -37,10 +37,10 @@ Ra(:,:,2) = ones(I,1)*raa;
 
 d_bar = -(Ra.*aaa + xi*w*zzz);
 %% Utility Function
-if ga==1
+if gamma==1
     U = @(c) log(c);
 else
-    U = @(c) c.^(1-ga)/(1-ga);
+    U = @(c) c.^(1-gamma)/(1-gamma);
 end
 
 MU = @(c) c.^(-gamma);
@@ -81,15 +81,26 @@ for n=1:maxit
     [~,d_BF] = update_policy(VaF, VbB, MU_inv, a, d_bar, par);
     [c_F, d_FB] = update_policy(VaB, VbF, MU_inv, aaa, d_bar, par);
     [~,d_FF] = update_policy(VaF, VbF, MU_inv, a, d_bar, par);
-    d_F = d_FF.*(d_FF > d_bar)+d_FB.*(d_FB < d_bar);
+    
+    d_FF(:,J,:) = d_bar(:,J,:);
+    d_BF(:,J,:) = d_bar(:,J,:);
+    d_FB(:,1,:) = d_bar(:,1,:);
+    d_BB(:,1,:) = d_bar(:,1,:); 
+
+    d_F = d_FF.*+d_FB.*(d_FB < d_bar);
     d_B = d_BF.*(d_BF > d_bar)+d_BB.*(d_BB < d_bar);
     
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
         two_asset_kinked_cost(d_B,aaa, chi0, chi1) - c_B;
+    % at lower b-boundary don't use Vb_B; if Vb_F dosn't work, leave it to
+    % the next part that deals with b-drift zero
+    sb_B(1,:,:) = 0; 
     I_B = sb_B < 0;
 
     sb_F = (1-xi)*w*zzz + Rb.*bbb - d_F -...
         two_asset_kinked_cost(d_F,aaa, chi0, chi1) - c_F;
+    % vice versa for bmax:
+    sb_F(I,:,:) = 0;
     I_F = sb_F > 0;
     
     I_0 = 1 - I_B - I_F;
