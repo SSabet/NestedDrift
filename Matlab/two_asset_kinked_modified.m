@@ -124,6 +124,7 @@ for n=1:maxit
     c = c_F.*I_F + c_B.*I_B + c_0.*I_0;
     u = c.^(1-gamma)/(1-gamma);
     
+    % TODO: a function for building the A matrix
     %CONSTRUCT MATRIX BB SUMMARING EVOLUTION OF b
     X = -Ic_B.*sc_B/db -Id_B.*sd_B/db;
     Y = (Ic_B.*sc_B - Ic_F.*sc_F)/db + (Id_B.*sd_B - Id_F.*sd_F)/db;

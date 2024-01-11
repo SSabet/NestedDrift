@@ -7,9 +7,8 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
     
     
     %%%%% Boundary conditions for amin and amax?
-    % for boundaries, amin is taken care of inside the main aj loop in the
-    % section called "% Negative d but down-drift region", amax is done
-    % separately after the main aj loop,
+    % for now: looping aj over 2:(J-1), then handling amin and amax seperately
+    % after the main aj loop,
 
     % Loop through the whole state space
     for bi = 1:I
@@ -39,15 +38,8 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
 
                     bounds = [0,dmax];
                     fun    = @(x) tester(x,VaF(bi,aj,zk),1);
-                    %d      = fzero(fun,bounds);
+                    d      = fzero(fun,bounds);
                     
-                    % FOR DEBUGGING
-                    try
-                        d = fzero(fun,bounds);
-                    catch
-                        fprintf(bi, aj, zk);
-                    end
-
                     dpol(bi,aj,zk) = d;
                     cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
                 
@@ -68,13 +60,6 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                         
                         d = fzero(fun,bounds);
                         
-                        % % FOR DEBUGGING
-                        % try
-                        %     d = fzero(fun,bounds);
-                        % catch
-                        %     fprintf(bi, aj, zk)
-                        % end
-
                         dpol(bi,aj,zk) = d;
                         cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
                     end
@@ -126,11 +111,10 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
         % Handling the amin and amax cases
         % at amin, enforce: d =0
         aj = 1;
-        % dlower = (chi0-1)*a(aj)/chi1; % would be zero if amin = 0
+        
         for zk = 1:Nz
                 dpol(bi,aj,zk) = 0;
                 cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk);
-            %end
         end
 
         % now for amax
@@ -143,7 +127,8 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
             if bdrift_zero(bi,aj,zk) == 0
                     continue
 
-            % Negative d but down-drift region
+            % Negative d but down-drift region: only if dupper > dlower
+            % (otherwise drift would be positive: enforce 0)
             elseif (dupper > dlower && tester(dupper,VaB(bi,aj,zk),0) > 0)
                 bounds = [dlower,dupper];
                 fun    = @(x) tester(x,VaB(bi,aj,zk),0);
