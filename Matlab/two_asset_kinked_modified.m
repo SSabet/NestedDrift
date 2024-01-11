@@ -35,7 +35,8 @@ tau = 10; raa = ra.*(1 - (1.33.*amax./a).^(1-tau));
 Ra(:,:,1) = ones(I,1)*raa;
 Ra(:,:,2) = ones(I,1)*raa;
 
-d_bar = -(Ra.*aaa + xi*w*zzz);
+d_upper = -(Ra.*aaa + xi*w*zzz);
+d_lower = (chi0-1)/chi1.*aaa;
 %% Utility Function
 if gamma==1
     U = @(c) log(c);
@@ -50,6 +51,8 @@ VbF = zeros(I,J,Nz);
 VbB = zeros(I,J,Nz);
 VaF = zeros(I,J,Nz);
 VaB = zeros(I,J,Nz);
+c_B = zeros(I,J,Nz);
+c_F = zeros(I,J,Nz);
 c = zeros(I,J,Nz);
 updiag = zeros(I*J,Nz);
 lowdiag = zeros(I*J,Nz);
@@ -60,9 +63,12 @@ BBi = cell(Nz,1);
 %% INITIAL GUESS
 tic;
 v0 = (((1-xi)*w*zzz + ra.*aaa + rb_neg.*bbb).^(1-gamma))/(1-gamma)/rho;
+v0 = (((1-xi)*w*zzz - (d_upper+two_asset_kinked_cost(d_upper,aaa, chi0, chi1))...
+    + Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
 v = v0;
 
 for n=1:maxit
+    fprintf('Iteration %d. \n', n);
     V = v;   
     %DERIVATIVES W.R.T. b
     VbF(1:I-1,:,:) = (V(2:I,:,:)-V(1:I-1,:,:))/db; % forward difference
@@ -75,20 +81,20 @@ for n=1:maxit
     VaF(:,1:J-1,:) = (V(:,2:J,:)-V(:,1:J-1,:))/da;  % forward difference
     VaB(:,2:J,:) = (V(:,2:J,:)-V(:,1:J-1,:))/da; % backward difference
     
-    c_B = VbB.^(-1/gamma);
-    c_F = VbF.^(-1/gamma);
-    [c_B, d_BB] = update_policy(VaB, VbB, MU_inv, aaa, d_bar, par);
-    [~,d_BF] = update_policy(VaF, VbB, MU_inv, a, d_bar, par);
-    [c_F, d_FB] = update_policy(VaB, VbF, MU_inv, aaa, d_bar, par);
-    [~,d_FF] = update_policy(VaF, VbF, MU_inv, a, d_bar, par);
+    c_B(2:I,:,:) = MU_inv(VbB(2:I,:,:));
+    c_F(1:I-1,:,:) = MU_inv(VbF(1:I-1,:,:));
+    [~, d_BB] = update_policy(VaB, VbB, MU_inv, aaa, d_upper, par);
+    [~,d_BF] = update_policy(VaF, VbB, MU_inv, a, d_upper, par);
+    [~, d_FB] = update_policy(VaB, VbF, MU_inv, aaa, d_upper, par);
+    [~,d_FF] = update_policy(VaF, VbF, MU_inv, a, d_upper, par);
     
-    d_FF(:,J,:) = d_bar(:,J,:);
-    d_BF(:,J,:) = d_bar(:,J,:);
-    d_FB(:,1,:) = d_bar(:,1,:);
-    d_BB(:,1,:) = d_bar(:,1,:); 
+    d_FF(:,J,:) = d_upper(:,J,:);
+    d_BF(:,J,:) = d_upper(:,J,:);
+    d_FB(:,1,:) = d_upper(:,1,:);
+    d_BB(:,1,:) = d_upper(:,1,:); 
 
-    d_F = d_FF.*+d_FB.*(d_FB < d_bar);
-    d_B = d_BF.*(d_BF > d_bar)+d_BB.*(d_BB < d_bar);
+    d_F = d_FF.*+d_FB.*(d_FB < d_upper);
+    d_B = d_BF.*(d_BF > d_upper)+d_BB.*(d_BB < d_upper);
     
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
         two_asset_kinked_cost(d_B,aaa, chi0, chi1) - c_B;
@@ -104,14 +110,18 @@ for n=1:maxit
     I_F = sb_F > 0;
     
     I_0 = 1 - I_B - I_F;
-    
+
+    if (sum(sum(sum(I_0<0)))>0)
+        fprintf('There are elements with both I_F & I_B positive. V not concave in b?')
+    end
+
     % to Patrick: from this point on we should apply your procedure to any
     % points where I_0 is one, the c_0 vector will be the result of your
     % code for sb = 0
 
     %c_0 = (1-xi)*w*zzz + Rb.*bbb;
-  
-    c = c_F.*Ic_F + c_B.*Ic_B + c_0.*Ic_0;
+    [c_0, d_0] = bdotzero(I_0,VaF,VaB,a,b,z,Rb,par);
+    c = c_F.*I_F + c_B.*I_B + c_0.*I_0;
     u = c.^(1-gamma)/(1-gamma);
     
     %CONSTRUCT MATRIX BB SUMMARING EVOLUTION OF b
