@@ -99,9 +99,9 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                         
                     % Negative d but no drift
                     else
-                       
-                        dpol(bi,aj,zk) = dupper;
-                        cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(dupper,a(aj), chi0, chi1);
+                        d              = dupper;
+                        dpol(bi,aj,zk) = d;
+                        cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
                         
                     end
                 end
