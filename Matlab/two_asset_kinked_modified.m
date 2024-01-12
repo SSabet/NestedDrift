@@ -130,7 +130,7 @@ for n=1:maxit
     u  = c.^(1-gamma)/(1-gamma);
 
     % Build transition matrix matrix
-    A  = driftMatrixLiquid(sb) + driftMatrixIlliquid(sa) + Bswitch;
+    A  = driftMatrixLiquid(sb,db,db,par) + driftMatrixIlliquid(sa,da,da,par) + Bswitch;
     
     if max(abs(sum(A,2)))>10^(-12)
         disp('Improper Transition Matrix')

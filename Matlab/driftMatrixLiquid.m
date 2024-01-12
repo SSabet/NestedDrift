@@ -1,7 +1,7 @@
-function BB = driftMatrixLiquid(s)
-
-    global dbb dbf I J Nz
+function BB = driftMatrixLiquid(s, dbb, dbf, par)
     
+    cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
+
     % Preallocate some memory
     BBi      = cell(Nz,1);
     updiag   = zeros(I*J,Nz);

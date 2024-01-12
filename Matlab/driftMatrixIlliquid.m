@@ -1,7 +1,7 @@
-function KK = driftMatrixIlliquid(m)
+function KK = driftMatrixIlliquid(m,dkb,dkf,par)
 
-    global dkb dkf I J Nz
-    
+    cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
+
     % Preallocate some memory
     AAi        = cell(Nz,1);
     AAupdiag   = zeros(I*J,Nz);

@@ -113,9 +113,9 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
         aj = 1;
         
         for zk = 1:Nz
-            d              = 0;
+            d              = 0; % CONTROVERSY HERE
             dpol(bi,aj,zk) = d;
-            cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1)
+            cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
         end
 
         % now for amax
@@ -138,7 +138,7 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                 dpol(bi,aj,zk) = d;
                 cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
             else
-                d              = dlower
+                d              = dupper; % This forces a sub-optimal condition to respect the boundary
                 dpol(bi,aj,zk) = d;
                 cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
             end           
