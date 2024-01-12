@@ -113,8 +113,9 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
         aj = 1;
         
         for zk = 1:Nz
-                dpol(bi,aj,zk) = 0;
-                cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk);
+            d              = 0;
+            dpol(bi,aj,zk) = d;
+            cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1)
         end
 
         % now for amax
@@ -137,8 +138,9 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                 dpol(bi,aj,zk) = d;
                 cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
             else
-                dpol(bi,aj,zk) = dupper;
-                cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(dupper,a(aj), chi0, chi1);
+                d              = dlower
+                dpol(bi,aj,zk) = d;
+                cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
             end           
         end
     end
