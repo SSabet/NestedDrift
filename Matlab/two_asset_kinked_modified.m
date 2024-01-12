@@ -129,73 +129,8 @@ for n=1:maxit
     sa = ra.*aaa + xi .* w .* zzz + d;
     u  = c.^(1-gamma)/(1-gamma);
 
-    % Build A matrix
-    %A = driftMatrixLiquid(sb) + driftMatrixIlliquid(sa) + Bswitch;
-    
-    % TODO: a function for building the A matrix
-    %CONSTRUCT MATRIX BB SUMMARING EVOLUTION OF b
-    X = -Ic_B.*sc_B/db -Id_B.*sd_B/db;
-    Y = (Ic_B.*sc_B - Ic_F.*sc_F)/db + (Id_B.*sd_B - Id_F.*sd_F)/db;
-    Z = Ic_F.*sc_F/db + Id_F.*sd_F/db;
-    
-    for i = 1:Nz
-        centdiag(:,i) = reshape(Y(:,:,i),I*J,1);
-    end
-
-    lowdiag(1:I-1,:) = X(2:I,1,:);
-    updiag(2:I,:) = Z(1:I-1,1,:);
-    for j = 2:J
-        lowdiag(1:j*I,:) = [lowdiag(1:(j-1)*I,:);squeeze(X(2:I,j,:));zeros(1,Nz)];
-        updiag(1:j*I,:) = [updiag(1:(j-1)*I,:);zeros(1,Nz);squeeze(Z(1:I-1,j,:))];
-    end
-    
-    for nz=1:Nz
-        BBi{nz}=spdiags(centdiag(:,nz),0,I*J,I*J)+spdiags([updiag(:,nz);0],1,I*J,I*J)+spdiags([lowdiag(:,nz);0],-1,I*J,I*J);
-    end
-    
-    BB = [BBi{1}, sparse(I*J,I*J); sparse(I*J,I*J), BBi{2}];
-    
-    %CONSTRUCT MATRIX AA SUMMARIZING EVOLUTION OF a
-    % to Patrick: we shouldn't need the boundary lines below
-    dB = Id_B.*dBB + Id_F.*dFB;
-    dF = Id_B.*dBF + Id_F.*dFF;
-    MB = min(dB,0);
-    MF = max(dF,0) + xi*w*zzz + Ra.*aaa;
-    MB(:,J,:) = xi*w*zzz(:,J,:) + dB(:,J,:) + Ra(:,J,:).*amax; %this is hopefully negative
-    MF(:,J,:) = 0;
-    chi = -MB/da;
-    yy =  (MB - MF)/da;
-    zeta = MF/da;
-    
-    %MATRIX AAi
-    for nz=1:Nz
-        %This will be the upperdiagonal of the matrix AAi
-        AAupdiag=zeros(I,1); %This is necessary because of the peculiar way spdiags is defined.
-        for j=1:J
-            AAupdiag=[AAupdiag;zeta(:,j,nz)];
-        end
-        
-        %This will be the center diagonal of the matrix AAi
-        AAcentdiag= yy(:,1,nz);
-        for j=2:J-1
-            AAcentdiag=[AAcentdiag;yy(:,j,nz)];
-        end
-        AAcentdiag=[AAcentdiag;yy(:,J,nz)];
-        
-        %This will be the lower diagonal of the matrix AAi
-        AAlowdiag=chi(:,2,nz);
-        for j=3:J
-            AAlowdiag=[AAlowdiag;chi(:,j,nz)];
-        end
-        
-        %Add up the upper, center, and lower diagonal into a sparse matrix
-        AAi{nz} = spdiags(AAcentdiag,0,I*J,I*J)+spdiags(AAlowdiag,-I,I*J,I*J)+spdiags(AAupdiag,I,I*J,I*J);
-        
-    end
-    
-    AA = [AAi{1}, sparse(I*J,I*J); sparse(I*J,I*J), AAi{2}];
-    
-    A = AA + BB + Bswitch;
+    % Build transition matrix matrix
+    A  = driftMatrixLiquid(sb) + driftMatrixIlliquid(sa) + Bswitch;
     
     if max(abs(sum(A,2)))>10^(-12)
         disp('Improper Transition Matrix')
