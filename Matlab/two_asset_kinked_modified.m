@@ -93,7 +93,7 @@ for n=1:maxit
     d_FB(:,1,:) = d_upper(:,1,:);
     d_BB(:,1,:) = d_upper(:,1,:); 
 
-    d_F = d_FF.*+d_FB.*(d_FB < d_upper);
+    d_F = d_FF.*(d_FF > d_upper)+d_FB.*(d_FB < d_upper);
     d_B = d_BF.*(d_BF > d_upper)+d_BB.*(d_BB < d_upper);
     
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
@@ -121,8 +121,16 @@ for n=1:maxit
 
     %c_0 = (1-xi)*w*zzz + Rb.*bbb;
     [c_0, d_0] = bdotzero(I_0,VaF,VaB,a,b,z,Rb,par);
-    c = c_F.*I_F + c_B.*I_B + c_0.*I_0;
-    u = c.^(1-gamma)/(1-gamma);
+    
+    % Build complete policies
+    c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
+    d  = d_F.*I_F + d_B.*I_B + d_0.*I_0;
+    sb = (1-xi)*w*zzz + Rb.*bbb - c - d - two_asset_kinked_cost(d,aaa, chi0, chi1);
+    sa = ra.*aaa + xi .* w .* zzz + d;
+    u  = c.^(1-gamma)/(1-gamma);
+
+    % Build A matrix
+    %A = driftMatrixLiquid(sb) + driftMatrixIlliquid(sa) + Bswitch;
     
     % TODO: a function for building the A matrix
     %CONSTRUCT MATRIX BB SUMMARING EVOLUTION OF b
