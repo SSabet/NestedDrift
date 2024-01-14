@@ -2,6 +2,7 @@ clear all; close all; clc;
 
 %% Parameters
 par = readstruct("parameters.json");
+
 cellfun(@(x) assignin('base', x, par.(x)), fieldnames(par));
 
 % check the parameter values
@@ -25,7 +26,7 @@ Bswitch = [
 
 %matrix of liquid returns
 Rb = rb_pos.*(bbb>0) + rb_neg.*(bbb<0);
-raa = ra.*ones(1,J);
+%raa = ra.*ones(1,J);
 
 
 %if ra>>rb, impose tax on ra*a at high a, otherwise some households
@@ -71,7 +72,6 @@ v0 = (((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
 v = v0;
 
 for n=1:maxit
-    fprintf('Iteration %d. \n', n);
     V = v;   
     %DERIVATIVES W.R.T. b
     VbF(1:I-1,:,:) = (V(2:I,:,:)-V(1:I-1,:,:))/db; % forward difference
@@ -123,7 +123,7 @@ for n=1:maxit
     
 
     %c_0 = (1-xi)*w*zzz + Rb.*bbb;
-    [c_0, d_0] = bdotzero(I_0,VaF,VaB,a,b,z,Rb,par);
+    [c_0, d_0] = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,par);
     
     % Build complete policies
     c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
@@ -159,7 +159,8 @@ for n=1:maxit
     
     if max(abs(sum(A,2)))>10^(-12)
         disp('Improper Transition Matrix')
-        [ii, jj, zz] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
+        [ii, jj, kk] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
+        Improper_entries = [find(abs(sum(A,2)) > 10^(-12)), ii, jj, kk];
         find(abs(sum(A,2))>10^(-12));
         find(abs(sum(BB,2))>10^(-12));
         find(abs(sum(AA,2))>10^(-12));

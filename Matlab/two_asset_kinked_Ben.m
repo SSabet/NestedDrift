@@ -1,5 +1,5 @@
 clear all; close all; clc;
-global chi0 chi1 ga
+%global chi0 chi1 ga
 tic;
 ga = 2; %CRRA utility with parameter gamma
 ra = 0.05;
