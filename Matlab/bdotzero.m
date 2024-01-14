@@ -12,12 +12,12 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
 
     % Loop through the whole state space
     for bi = 1:I
-        for aj = 2:(J-1)
+        for aj = 1:(J-1)
             dlower = (chi0-1)*a(aj)/chi1;
             for zk = 1:Nz
-                % FOR DEBUGGING
-                % if ((bi == 50 || bi == 51) && aj == 2 && zk ==1)
-                %     fprintf('cons neg?')
+                % % % FOR DEBUGGING
+                % if ((bi == 3 || bi == 3) && aj == 2 && zk ==2)
+                %     fprintf('d-opt zero? \n')
                 % end
 
                 % Generic test function
@@ -34,12 +34,21 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                     % to search in the positive domain, d cannot be too
                     % large because then consumption would be negative.
                     % let's find a large legitimate d!
-                    dmax = max(roots([chi1/(2*a(aj)), chi0, -(Rb(bi,aj,zk)*b(bi) + (1-xi)*w*z(zk))]));
+                    dmax = max(roots([chi1/(2*a(aj)), chi0+1, -(Rb(bi,aj,zk)*b(bi) + (1-xi)*w*z(zk))]))-1e-12;
 
                     bounds = [0,dmax];
                     fun    = @(x) tester(x,VaF(bi,aj,zk),1);
-                    d      = fzero(fun,bounds);
+                   % d      = fzero(fun,bounds);
                     
+                    try
+                        d      = fzero(fun,bounds);
+                    
+                    catch  
+                        fprintf('i,j,k are, %d, %d, %d. \n', bi, aj, zk)
+                        fprintf('lower bound is %f, fval is %f. \n', bounds(1), fun(bounds(1)))
+                        fprintf('lower bound is %f, fval is %f. \n', bounds(2), fun(bounds(2)))
+                    end
+
                     dpol(bi,aj,zk) = d;
                     cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
                 
@@ -53,13 +62,21 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                         cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk);
                         
                     % Negative d but up-drift region
-                    else
-                        
+                    else                        
                         bounds = [dlower,0];
                         fun    = @(x) tester(x,VaF(bi,aj,zk),0);
                         
-                        d = fzero(fun,bounds);
+                        % d = fzero(fun,bounds);
                         
+                        try
+                            d      = fzero(fun,bounds);
+                            
+                        catch  
+                            fprintf('i,j,k are, %d, %d, %d. \n', bi, aj, zk)
+                            fprintf('lower bound is %f, fval is %f. \n', bounds(1), fun(bounds(1)))
+                            fprintf('lower bound is %f, fval is %f. \n', bounds(2), fun(bounds(2)))
+                        end
+
                         dpol(bi,aj,zk) = d;
                         cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
                     end
@@ -91,7 +108,15 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
                         if (aj == 1)
                             d = dupper; % at amin we should avoide negative drift
                         else
-                            d      = fzero(fun,bounds);
+                            try
+                                d      = fzero(fun,bounds);
+                            catch  
+                                fprintf('i,j,k are, %d, %d, %d. \n', bi, aj, zk)
+                                fprintf('lower bound is %f, fval is %f. \n', bounds(1), fun(bounds(1)))
+                                fprintf('lower bound is %f, fval is %f. \n', bounds(2), fun(bounds(2)))
+                                %rererere =1;
+                            end
+
                         end
                     
                         dpol(bi,aj,zk) = d;
@@ -110,13 +135,13 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,par)
         
         % Handling the amin and amax cases
         % at amin, enforce: d =0
-        aj = 1;
-        
-        for zk = 1:Nz
-            d              = 0; % CONTROVERSY HERE
-            dpol(bi,aj,zk) = d;
-            cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
-        end
+        % aj = 1;
+        % 
+        % for zk = 1:Nz
+        %     d              = 0; % CONTROVERSY HERE
+        %     dpol(bi,aj,zk) = d;
+        %     cpol(bi,aj,zk) = Rb(bi,aj,zk) * b(bi) + (1-xi) * w * z(zk) - d - two_asset_kinked_cost(d,a(aj), chi0, chi1);
+        % end
 
         % now for amax
         aj = J;
