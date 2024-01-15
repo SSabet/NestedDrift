@@ -1,7 +1,8 @@
 clear all; close all; clc;
 
 %% Parameters
-par = readstruct("parameters.json");
+%par = readstruct("parameters.json");
+parameters;
 
 cellfun(@(x) assignin('base', x, par.(x)), fieldnames(par));
 
