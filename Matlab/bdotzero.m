@@ -1,4 +1,4 @@
-function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra,par)
+function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, par)
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
 
     % Set up objects
@@ -11,10 +11,12 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra,par)
     % after the main aj loop,
 
     % Loop through the whole state space
-    for bi = 1:I
-        for aj = 1:(J-1)
-            dlower = (chi0-1)*a(aj)/chi1;
-            for zk = 1:Nz
+    for zk = 1:Nz
+       for aj = 1:(J-1)
+           %dlower = (chi0-1)*a(aj)/chi1;
+           dlower = d_lower(1, aj, zk);
+           for bi = 1:I
+                        
                 % % % FOR DEBUGGING
                 % if ((bi == 100) && aj == 49 && zk ==1)
                 %     fprintf('d-opt zero? \n')
@@ -23,8 +25,9 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra,par)
                 % Generic test function
                 tester = @(x,Va,positive) fone(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
                 % Determine if special region exists
-                dupper = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
-                
+                %dupper = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
+                dupper = d_upper(bi,aj,zk);
+
                 % Policies already identified for this point in the state space i.e. bdot != 0 here
                 if bdrift_zero(bi,aj,zk) == 0
                     continue
@@ -146,7 +149,8 @@ function [cpol,dpol] = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra,par)
         % now for amax
         aj = J;
         dlower = (chi0-1)*a(aj)/chi1;
-        for zk = 1:Nz
+        %for zk = 1:Nz
+        for bi = 1:I
             tester = @(x,Va,positive) fone(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
             dupper = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
             
