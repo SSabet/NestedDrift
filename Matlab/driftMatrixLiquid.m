@@ -1,33 +1,25 @@
 function BB = driftMatrixLiquid(s, dbb, dbf, par)
     
-    cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
-
-    % Preallocate some memory
-    BBi      = cell(Nz,1);
-    updiag   = zeros(I*J,Nz);
-    lowdiag  = zeros(I*J,Nz);
-    centdiag = zeros(I*J,Nz);
+    % Unpack parameter values
+    I = par.I; J = par.J; Nz = par.Nz;
     
     % Prepare elements for diag inputs
     X = -min(s,0)./dbb;
-    Y = min(s,0)./dbb - max(s,0)./dbf;
-    Z = max(s,0)./dbf;
-
-    for i = 1:Nz
-        centdiag(:,i) = reshape(Y(:,:,i),I*J,1);
+    Y =  min(s,0)./dbb - max(s,0)./dbf;
+    Z =  max(s,0)./dbf;
+    
+    % Build the sparse drift matrix information
+    rows = []; cols = []; vals = [];
+    for k = 1:Nz
+       for j = 1:J
+           base = (I*J*(k-1))+(I*(j-1));
+           rows = [rows, base+(1:I), base+(1:(I-1)), base+(2:I)]; % Order is central diag, updiag, lowdiag
+           cols = [cols, base+(1:I), base+(2:I),     base+(1:(I-1))];
+           vals = [vals; squeeze(Y(:,j,k)); squeeze(Z(1:(I-1),j,k)); squeeze(X(2:I,j,k))];
+       end
     end
-
-    lowdiag(1:I-1,:) = X(2:I,1,:);
-    updiag(2:I,:)    = Z(1:I-1,1,:);
-    for j = 2:J
-        lowdiag(1:j*I,:) = [lowdiag(1:(j-1)*I,:);squeeze(X(2:I,j,:));zeros(1,Nz)];
-        updiag(1:j*I,:)  = [updiag(1:(j-1)*I,:);zeros(1,Nz);squeeze(Z(1:I-1,j,:))];
-    end
-
-    for nz = 1:Nz
-        BBi{nz}=spdiags(centdiag(:,nz),0,I*J,I*J)+spdiags([updiag(:,nz);0],1,I*J,I*J)+spdiags([lowdiag(:,nz);0],-1,I*J,I*J);
-    end
-
-    BB = [BBi{1}, sparse(I*J,I*J); sparse(I*J,I*J), BBi{2}];
+    
+    % ...and make a sparse matrix out of it
+    BB = sparse(rows,cols,vals,I*J*Nz,I*J*Nz);
     
 return
