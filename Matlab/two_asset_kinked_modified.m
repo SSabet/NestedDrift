@@ -1,6 +1,7 @@
-clear all; close all; clc;
+clear; close all; clc;
 
 %% Parameters
+tic;
 %par = readstruct("parameters.json");
 parameters;
 
@@ -27,17 +28,15 @@ Bswitch = [
 
 %matrix of liquid returns
 Rb = rb_pos.*(bbb>0) + rb_neg.*(bbb<0);
-%raa = ra.*ones(1,J);
-
 
 %if ra>>rb, impose tax on ra*a at high a, otherwise some households
 %accumulate infinite illiquid wealth (not needed if ra is close to or less than rb)
-tau = 10; raa = ra.*(1 - (1.33.*amax./a).^(1-tau)); 
-% plot(a,raa.*a);
+tau = 10; raa = ra.*(1 - (1.33.*amax./a).^(1-tau)); % plot(a,raa.*a);
 %matrix of illiquid returns
 Ra(:,:,1) = ones(I,1)*raa;
 Ra(:,:,2) = ones(I,1)*raa;
 
+% two particular (array of) points on the d-domain
 d_upper = -(Ra.*aaa + xi*w*zzz);
 d_lower = (chi0-1)/chi1.*aaa;
 
@@ -59,12 +58,10 @@ VaB = zeros(I,J,Nz);
 c_B = zeros(I,J,Nz);
 c_F = zeros(I,J,Nz);
 
-%% INITIAL GUESS
-tic;
-% v0 = (((1-xi)*w*zzz + ra.*aaa + rb_neg.*bbb).^(1-gamma))/(1-gamma)/rho;
-v0 = (((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
-%v0 = (((1-xi)*w*zzz - (d_upper+two_asset_kinked_cost(d_upper,aaa, chi0, chi1))+ Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
-%v0 = (((1-xi)*w*z c_B(2:Izz - (max(d_upper,d_lower)+two_asset_kinked_cost(max(d_upper,d_lower),aaa, chi0, chi1))+ Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
+dist = ones(maxit,1);
+%% INITIAL GUESS and Main Loop
+
+v0 = U((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb)/rho;
 
 v = v0;
 
@@ -102,10 +99,10 @@ for n=1:maxit
 
     % Build deposit policies for forward and backward liquid drift cases, using only consistent deposit policies
     d_B = d_BF.*I_BF + d_BB.*I_BB + d_upper.*(~I_BB .* ~I_BF);
-    d_B(1,:,:) = 0; % This case will never be used, just over-writing a nan for stability
+    d_B(1,:,:) = 0; % This case will never be used, just over-writing a nan when updating d
     
     d_F = d_FF.*I_FF + d_FB.*I_FB + d_upper.*(~I_FB .* ~I_FF);
-    d_F(I,:,:) = 0; % This policy will never be used, just over-writing a nan for stability
+    d_F(I,:,:) = 0; % This policy will never be used, just over-writing a nan when updating d
     
     % Build backward liquid drift policy, and an indicator for when it's consitent with itself
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
@@ -126,7 +123,7 @@ for n=1:maxit
     
     % Find consumption and deposit policies for the case of zero liquid drift
     I_0 = 1 - I_B - I_F;
-    d_0 = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper,d_lower,par);
+    d_0 = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper,d_lower,MU, par);
     c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - two_asset_kinked_cost(d_0,aaa, chi0, chi1);
     
     % Build unconditional policies
@@ -135,41 +132,31 @@ for n=1:maxit
     sb = (1-xi)*w*zzz + Rb.*bbb - c - d - two_asset_kinked_cost(d,aaa, chi0, chi1);
     sa = Ra.*aaa + xi .* w .* zzz + d;
         
-    if (sum(sum(sum(I_0<0)))>0)
-        fprintf('There are elements with both I_F & I_B positive. V not concave in b? \n')
-        [iii, jjj, kkk] =  ind2sub(size(I_0), find(I_0 < 0));
-        not_ccv_indexes = [find(I_0 < 0), iii, jjj, kkk];
-        
-        check_idx = 5102:5105;
-        [d_B(check_idx); d_F(check_idx)];
-        [d_BB(check_idx); d_BF(check_idx); d_FB(check_idx); d_FF(check_idx)];
-    end
-
-    if (sum(sum(sum(VbB<0)))>0)
-        fprintf('There are elements with VbB < 0. V not concave in b? \n') 
-        [iii, jjj, kkk] =  ind2sub(size(VbB), find(VbB < 0));
-         neg_Vb_indexes = [find(VbB < 0), iii, jjj, kkk];
-    end
+    % if (sum(sum(sum(I_0<0)))>0)
+    %     fprintf('There are elements with both I_F & I_B positive. V not concave in b? \n')
+    %     [iii, jjj, kkk] =  ind2sub(size(I_0), find(I_0 < 0));
+    %     not_ccv_indexes = [find(I_0 < 0), iii, jjj, kkk];    % 
+    % end
+    % 
+    % if (sum(sum(sum(VbB<0)))>0)
+    %     fprintf('There are elements with VbB < 0. V not concave in b? \n') 
+    %     [iii, jjj, kkk] =  ind2sub(size(VbB), find(VbB < 0));
+    %      neg_Vb_indexes = [find(VbB < 0), iii, jjj, kkk];
+    % end
     
-    u  = c.^(1-gamma)/(1-gamma);
+    u  = U(c);
 
     % Build transition matrix matrix
     A  = driftMatrixLiquid(sb,db,db,par) + driftMatrixIlliquid(sa,da,da,par) + Bswitch;
     
-    if max(abs(sum(A,2)))>10^(-12)
-        
-        disp('Improper Transition Matrix')
-        [ii, jj, kk] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
-        Improper_entries = [find(abs(sum(A,2)) > 10^(-12)), ii, jj, kk];
-        find(abs(sum(A,2))>10^(-12));
-        
-        BB = driftMatrixLiquid(sb,db,db,par);
-        AA = driftMatrixIlliquid(sa,da,da,par);
-        find(abs(sum(BB,2))>10^(-12));
-        find(abs(sum(AA,2))>10^(-12));
-
-        break
-    end
+    % if max(abs(sum(A,2)))>10^(-12)
+    % 
+    %     disp('Improper Transition Matrix')
+    %     [ii, jj, kk] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
+    %     Improper_entries = [find(abs(sum(A,2)) > 10^(-12)), ii, jj, kk];
+    % 
+    %     break
+    % end
     
     B = (1/Delta + rho)*speye(I*J*Nz) - A;
     
@@ -186,10 +173,6 @@ for n=1:maxit
     Vchange = V - v;
     v = V;
     
-    b_dist(:,n) = max(abs(Vchange(:,:,2)),[],2);
-    a_dist(:,n) = max(max(abs(Vchange),[],3),[],1);
-    ab_dist(:,:,n) = max(abs(Vchange),[],3);
-   
     dist(n) = max(max(max(abs(Vchange))));
     disp(['Value Function, Iteration ' int2str(n) ', max Vchange = ' num2str(dist(n))]);
     if dist(n)<crit

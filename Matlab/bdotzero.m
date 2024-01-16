@@ -1,4 +1,4 @@
-function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, par)
+function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, par)
     
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
 
@@ -14,7 +14,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, par)
             for bi = 1:I
 
                 % Generic test function & state-specific zero drift policy
-                tester = @(x,Va,positive) fone(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
+                tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU, par);
                 dupper = d_upper(bi,aj,zk);
 
                 % Policies already identified for this point in the state space i.e. bdot != 0 here
@@ -89,7 +89,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, par)
         
         for bi = 1:I
             
-            tester = @(x,Va,positive) fone(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
+            tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU,par);
             dupper = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
 
             % Only consider points in the state space without an already
@@ -102,7 +102,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, par)
             elseif (dupper > dlower && tester(dupper,VaB(bi,aj,zk),0) > 0)
                 
                 bounds = [dlower,dupper];
-                fun    = @(x) fone(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk),par);
+                fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk), MU,par);
                 dpol(bi,aj,zk) = fzero(fun,bounds);
               
             % d < 0 and zero illiquid drift
