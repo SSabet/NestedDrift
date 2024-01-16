@@ -22,7 +22,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
                     continue
 
                 % No-arbitrage consistent with positive deposit (d>0)
-                elseif tester(0,VaF(bi,aj,zk),1) < 0 
+                elseif tester(0,VaF(bi,aj,zk),1) < 0
 
                     % d cannot be too large because c would need to be
                     % negative to ensure zero liquid drift. Find the max
@@ -39,14 +39,14 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
                     if tester(0,VaF(bi,aj,zk),0) <= 0
 
                         dpol(bi,aj,zk) = 0;
-
+                        
                     % d < 0 with illiquid up-drift
-                    else            
-
+                    elseif tester(dlower,VaF(bi,aj,zk),0) <= 0
                         bounds = [dlower,0];
                         fun    = @(x) tester(x,VaF(bi,aj,zk),0);
                         dpol(bi,aj,zk) = fzero(fun,bounds);
-
+                    else
+                        dpol(bi,aj,zk) = dlower; % This should never happen (marginal destruction of value, will only seem right if VaB < 0)
                     end
 
                 % d <= 0 and illiquid drift can be up, down or stationary
@@ -58,7 +58,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
                         dpol(bi,aj,zk) = 0;
 
                     % d < 0 with illiquid up-drift
-                    elseif tester(dupper,VaF(bi,aj,zk),0) < 0 
+                    elseif tester(dupper,VaF(bi,aj,zk),0) <= 0 
 
                         bounds = [dupper,0];
                         fun    = @(x) tester(x,VaF(bi,aj,zk),0);
@@ -69,10 +69,12 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
 
                         if (aj == 1)
                             dpol(bi,aj,zk) = dupper; % Impose state-constraint (no negative drift) at lower illiquid bound
-                        else
+                        elseif tester(dlower,VaB(bi,aj,zk),0) <= 0
                             bounds = [dlower,dupper];
                             fun    = @(x) tester(x,VaB(bi,aj,zk),0);
                             dpol(bi,aj,zk) = fzero(fun,bounds);
+                        else
+                            dpol(bi,aj,zk) = dlower; % This should never happen (marginal destruction of value, will only seem right if VaB < 0)
                         end
 
                     % d < 0 with illiquid zero-drift
@@ -101,9 +103,13 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
             % (otherwise drift would be positive: enforce 0)
             elseif (dupper > dlower && tester(dupper,VaB(bi,aj,zk),0) > 0)
                 
-                bounds = [dlower,dupper];
-                fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk), MU,par);
-                dpol(bi,aj,zk) = fzero(fun,bounds);
+                if tester(dlower,VaB(bi,aj,zk),0) <= 0
+                    bounds = [dlower,dupper];
+                    fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk), MU,par);
+                    dpol(bi,aj,zk) = fzero(fun,bounds);
+                else
+                    dpol(bi,aj,zk) = dlower; % This should never happen (marginal destruction of value, will only seem right if VaB < 0)
+                end
               
             % d < 0 and zero illiquid drift
             else
