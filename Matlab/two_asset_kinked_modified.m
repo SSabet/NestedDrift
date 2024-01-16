@@ -123,8 +123,9 @@ for n=1:maxit
     I_F(I,:,:) = 0;
     
     % Find consumption and deposit policies for the case of zero liquid drift
-    I_0        = 1 - I_B - I_F;
-    [c_0, d_0] = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper, d_lower,par);
+    I_0 = 1 - I_B - I_F;
+    d_0 = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper, d_lower,par);
+    c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - two_asset_kinked_cost(d_0,aaa, chi0, chi1);
     
     % Build unconditional policies
     c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
