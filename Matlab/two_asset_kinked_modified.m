@@ -65,7 +65,7 @@ BBi = cell(Nz,1);
 
 %% INITIAL GUESS
 tic;
-v0 = (((1-xi)*w*zzz + ra.*aaa + rb_neg.*bbb).^(1-gamma))/(1-gamma)/rho;
+% v0 = (((1-xi)*w*zzz + ra.*aaa + rb_neg.*bbb).^(1-gamma))/(1-gamma)/rho;
 v0 = (((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
 %v0 = (((1-xi)*w*zzz - (d_upper+two_asset_kinked_cost(d_upper,aaa, chi0, chi1))+ Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
 %v0 = (((1-xi)*w*z c_B(2:Izz - (max(d_upper,d_lower)+two_asset_kinked_cost(max(d_upper,d_lower),aaa, chi0, chi1))+ Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
@@ -73,6 +73,7 @@ v0 = (((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb).^(1-gamma))/(1-gamma)/rho;
 v = v0;
 
 for n=1:maxit
+    
     V = v;   
 
     % Prepare value derivatives for use in FOC calculations
@@ -81,13 +82,15 @@ for n=1:maxit
     VaF(:,1:J-1,:) = (V(:,2:J,:)-V(:,1:J-1,:))/da;  % forward difference wrt a
     VaB(:,2:J,:)   = (V(:,2:J,:)-V(:,1:J-1,:))/da; % backward difference wrt a
 
-    % Build consumption and deposit policies conditional on assumed liquid and illiquid drift
+    % Build consumption and deposit policies conditional on assumed 
+    %   liquid and illiquid drift directions 
     c_B(2:I,:,:)   = MU_inv(VbB(2:I,:,:));
     c_F(1:I-1,:,:) = MU_inv(VbF(1:I-1,:,:));
-    [~, d_BB]      = update_policy(VaB, VbB, MU_inv, aaa, d_upper, par);
-    [~,d_BF]       = update_policy(VaF, VbB, MU_inv, a, d_upper, par);
-    [~, d_FB]      = update_policy(VaB, VbF, MU_inv, aaa, d_upper, par);
-    [~,d_FF]       = update_policy(VaF, VbF, MU_inv, a, d_upper, par);
+    
+    d_BB = two_asset_kinked_FOC(VaB, VbB, a, par.chi0, par.chi1);
+    d_BF = two_asset_kinked_FOC(VaF, VbB, a, par.chi0, par.chi1);
+    d_FB = two_asset_kinked_FOC(VaB, VbF, a, par.chi0, par.chi1);
+    d_FF = two_asset_kinked_FOC(VaF, VbF, a, par.chi0, par.chi1);
 
     % Impose the zero drift deposit in cases where the illiquid asset will overrun its state bounds otherwise
     d_FF(:,J,:) = d_upper(:,J,:);
@@ -103,28 +106,31 @@ for n=1:maxit
 
     % Build deposit policies for forward and backward liquid drift cases, using only consistent deposit policies
     d_B = d_BF.*I_BF + d_BB.*I_BB + d_upper.*(~I_BB .* ~I_BF);
+    d_B(1,:,:) = 0; % This case will never be used, just over-writing a nan for stability
+    
     d_F = d_FF.*I_FF + d_FB.*I_FB + d_upper.*(~I_FB .* ~I_FF);
-
+    d_F(I,:,:) = 0; % This policy will never be used, just over-writing a nan for stability
+    
     % Build backward liquid drift policy, and an indicator for when it's consitent with itself
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
         two_asset_kinked_cost(d_B,aaa, chi0, chi1) - c_B;
+    
     % at lower b-boundary don't use Vb_B; if Vb_F dosn't work, leave it to
     % the next part that deals with b-drift zero
-    d_B(1,:,:) = 0;
     I_B = sb_B < 0; 
     I_B(1,:,:) = 0;
 
     % Build forward liquid drift policy, and an indicator for when it's consitent with itself
     sb_F = (1-xi)*w*zzz + Rb.*bbb - d_F -...
         two_asset_kinked_cost(d_F,aaa, chi0, chi1) - c_F;
-    % vice versa for bmax:
-    d_F(I,:,:) = 0;
-    I_F = (sb_F > 0) .* (I_B==0); %HACK HERE gives precedence to the backward drift if there's a clash
+    
+    % ...and vice versa for bmax:
+    I_F = (sb_F > 0) .* (I_B==0); % Give precedence to the backward drift if there's a clash
     I_F(I,:,:) = 0;
     
     % Find consumption and deposit policies for the case of zero liquid drift
     I_0 = 1 - I_B - I_F;
-    d_0 = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper, d_lower,par);
+    d_0 = bdotzero(I_0,VaF,VaB,a,b,z,Rb,Ra,d_upper,d_lower,par);
     c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - two_asset_kinked_cost(d_0,aaa, chi0, chi1);
     
     % Build unconditional policies
@@ -152,17 +158,17 @@ for n=1:maxit
     u  = c.^(1-gamma)/(1-gamma);
 
     % Build transition matrix matrix
-    %sa = real(sa); sb = real(sb); % HACK
-
-    BB = driftMatrixLiquid(sb,db,db,par);
-    AA = driftMatrixIlliquid(sa,da,da,par);
     A  = driftMatrixLiquid(sb,db,db,par) + driftMatrixIlliquid(sa,da,da,par) + Bswitch;
     
     if max(abs(sum(A,2)))>10^(-12)
+        
         disp('Improper Transition Matrix')
         [ii, jj, kk] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
         Improper_entries = [find(abs(sum(A,2)) > 10^(-12)), ii, jj, kk];
         find(abs(sum(A,2))>10^(-12));
+        
+        BB = driftMatrixLiquid(sb,db,db,par);
+        AA = driftMatrixIlliquid(sa,da,da,par);
         find(abs(sum(BB,2))>10^(-12));
         find(abs(sum(AA,2))>10^(-12));
 
