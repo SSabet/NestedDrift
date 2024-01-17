@@ -1,5 +1,4 @@
-function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, par)
-    
+function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_zerodrift, d_lower, MU, par)
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
 
     % Set up solution object
@@ -15,7 +14,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
 
                 % Generic test function & state-specific zero drift policy
                 tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU, par);
-                dupper = d_upper(bi,aj,zk);
+                dzerod = d_zerodrift(bi,aj,zk);
 
                 % Policies already identified for this point in the state space i.e. bdot != 0 here
                 if bdrift_zero(bi,aj,zk) == 0
@@ -33,7 +32,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
                     dpol(bi,aj,zk) = fzero(fun,bounds);
 
                 % d <= 0 and illiquid drift always up
-                elseif dupper < dlower
+                elseif dzerod < dlower
 
                     % d = 0 with illiquid up-drift
                     if tester(0,VaF(bi,aj,zk),0) <= 0
@@ -58,19 +57,19 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
                         dpol(bi,aj,zk) = 0;
 
                     % d < 0 with illiquid up-drift
-                    elseif tester(dupper,VaF(bi,aj,zk),0) <= 0 
+                    elseif tester(dzerod,VaF(bi,aj,zk),0) <= 0 
 
-                        bounds = [dupper,0];
+                        bounds = [dzerod,0];
                         fun    = @(x) tester(x,VaF(bi,aj,zk),0);
                         dpol(bi,aj,zk) = fzero(fun,bounds);
 
                     % d < 0 with illiquid down-drift
-                    elseif tester(dupper,VaB(bi,aj,zk),0) > 0
+                    elseif tester(dzerod,VaB(bi,aj,zk),0) > 0
 
                         if (aj == 1)
-                            dpol(bi,aj,zk) = dupper; % Impose state-constraint (no negative drift) at lower illiquid bound
+                            dpol(bi,aj,zk) = dzerod; % Impose state-constraint (no negative drift) at lower illiquid bound
                         elseif tester(dlower,VaB(bi,aj,zk),0) <= 0
-                            bounds = [dlower,dupper];
+                            bounds = [dlower,dzerod];
                             fun    = @(x) tester(x,VaB(bi,aj,zk),0);
                             dpol(bi,aj,zk) = fzero(fun,bounds);
                         else
@@ -79,7 +78,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
 
                     % d < 0 with illiquid zero-drift
                     else
-                        dpol(bi,aj,zk) = dupper;
+                        dpol(bi,aj,zk) = dzerod;
                     end
                 end
             end
@@ -92,19 +91,19 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
         for bi = 1:I
             
             tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU,par);
-            dupper = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
+            dzerod = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
 
             % Only consider points in the state space without an already
             % defined policy
             if bdrift_zero(bi,aj,zk) == 0
                 continue
 
-            % d < 0 and illiquid down-drift: only if dupper > dlower
+            % d < 0 and illiquid down-drift: only if dzerod > dlower
             % (otherwise drift would be positive: enforce 0)
-            elseif (dupper > dlower && tester(dupper,VaB(bi,aj,zk),0) > 0)
+            elseif (dzerod > dlower && tester(dzerod,VaB(bi,aj,zk),0) > 0)
                 
                 if tester(dlower,VaB(bi,aj,zk),0) <= 0
-                    bounds = [dlower,dupper];
+                    bounds = [dlower,dzerod];
                     fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk), MU,par);
                     dpol(bi,aj,zk) = fzero(fun,bounds);
                 else
@@ -114,7 +113,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_upper, d_lower, MU, 
             % d < 0 and zero illiquid drift
             else
                 
-                dpol(bi,aj,zk) = dupper; % This forces a sub-optimal condition to respect the boundary
+                dpol(bi,aj,zk) = dzerod; % This forces a sub-optimal condition to respect the boundary
                 
             end           
         end
