@@ -2,8 +2,14 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
 
     % Unpack parameters and grids
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
-    cellfun(@(x) assignin('caller', x, grids.(x)), fieldnames(grids));
+    %cellfun(@(x) assignin('caller', x, grids.(x)), fieldnames(grids));
     
+    a = grids.a;
+    b = grids.b;
+    aaa = grids.aaa;
+    bbb = grids.bbb;
+    zzz = grids.zzz;
+
     % Preallocate
     VbF = zeros(I,J,Nz);
     VbB = zeros(I,J,Nz);

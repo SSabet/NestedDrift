@@ -39,7 +39,7 @@ function par = parameters()
 
     % Estimation parameters
     par.crit  = 1e-5;
-    par.Delta = 100.0;
+    par.Delta = 1000000.0;
     par.maxit = 35;
 
 end
