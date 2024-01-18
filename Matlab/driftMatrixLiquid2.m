@@ -8,9 +8,9 @@ function BB = driftMatrixLiquid2(sb, bbb, par)
     Z = zeros(I,J,Nz);
 
     % Prepare elements for diag inputs
-    X(2:I,:,:) = -min(sb(2:I,:,:),0)./(bbb(2:I,:,:)- bbb(1:I-1,:,:));
+    X(2:I,:,:)   = -min(sb(2:I,:,:),0)  ./(bbb(2:I,:,:)- bbb(1:I-1,:,:));
     Z(1:I-1,:,:) =  max(sb(1:I-1,:,:),0)./(bbb(2:I,:,:)- bbb(1:I-1,:,:));
-    Y = -(X+Z);
+    Y            = -(X+Z);
 
     % Build the sparse drift matrix information
     rows = []; cols = []; vals = [];
