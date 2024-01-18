@@ -1,4 +1,6 @@
-function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_zerodrift, d_lower, MU, par)
+function dpol = bdotzero(bdrift_zero,VaF,VaB,b,a,z,Rb,Ra, d_zerodrift, d_lower,par)
+
+    % Unpack parameters & grids
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
 
     % Set up solution object
@@ -13,7 +15,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_zerodrift, d_lower, 
             for bi = 1:I
 
                 % Generic test function & state-specific zero drift policy
-                tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU, par);
+                tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
                 dzerod = d_zerodrift(bi,aj,zk);
 
                 % Policies already identified for this point in the state space i.e. bdot != 0 here
@@ -90,7 +92,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_zerodrift, d_lower, 
         
         for bi = 1:I
             
-            tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk), MU,par);
+            tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
             dzerod = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
 
             % Only consider points in the state space without an already
@@ -104,7 +106,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,a,b,z,Rb,Ra, d_zerodrift, d_lower, 
                 
                 if tester(dlower,VaB(bi,aj,zk),0) <= 0
                     bounds = [dlower,dzerod];
-                    fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk), MU,par);
+                    fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk),par);
                     dpol(bi,aj,zk) = fzero(fun,bounds);
                 else
                     dpol(bi,aj,zk) = dlower; % This should never happen (marginal destruction of value, will only seem right if VaB < 0)
