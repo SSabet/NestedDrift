@@ -58,6 +58,8 @@ function g = stationary_dist(A, a, b, par)
     da_tilde(2:J-1) = (a(3:J) - a(1:J-2))/2; 
     da_tilde(1) = a(2)-a(1); 
     da_tilde(J) = a(J)-a(J-1);
+
+    % Q: should the end points of each of these also be divided by 2? That would be necessary to ensure that the sum of da and db are equal to the range of each support...
     
     [AAA,BBB] = meshgrid(da_tilde,db_tilde); 
     dba_tilde = reshape(AAA .* BBB,I*J,1);
