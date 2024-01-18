@@ -8,9 +8,9 @@ function KK = driftMatrixIlliquid2(sa,aaa,par)
     Z = zeros(I,J,Nz);
 
     % Prepare elements for diag inputs
-    X(:,2:J,:) = -min(sa(:,2:J,:),0)./(aaa(:,2:J,:)-aaa(:,1:J-1,:));
+    X(:,2:J,:)   = -min(sa(:,2:J,:),0)./(aaa(:,2:J,:)-aaa(:,1:J-1,:));
     Z(:,1:J-1,:) =  max(sa(:,1:J-1,:),0)./(aaa(:,2:J,:)-aaa(:,1:J-1,:));
-    Y = -(X+Z);
+    Y            = -(X+Z);
 
     % Build the sparse drift matrix information
     row = []; col = []; val = [];
