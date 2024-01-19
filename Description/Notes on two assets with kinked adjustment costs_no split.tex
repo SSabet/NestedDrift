@@ -1,4 +1,4 @@
-% Created 2024-01-10 Wed 23:43
+% Created 2024-01-19 Fri 09:20
 % Intended LaTeX compiler: pdflatex
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
@@ -29,15 +29,15 @@
 \tableofcontents
 
 \newpage
-These notes are based on the problem and code for the "Two Assets and Kinked Adjustment Costs," on Ben's Website.
+In what follows we present a new numerical algorithm for solving the partial equilibrium problem of the household with two assets and kinked adjustment costs of the type used in the HANK paper (\cite{kaplan2018monetary}). this documents describes the upwind implicit numerical scheme to solve the problem as described \href{http://benjaminmoll.com/wp-content/uploads/2020/06/two_asset_kinked.pdf}{here} (hereafter KMV) but without splitting the drift of the illiquid asset, and by nonlinear treatment of the boundary conditions. We try to remain close to KMV code in term on notation; please note that the KMV description and note are not exactly those used in the paper \cite{kaplan2018monetary}. You can consult \cite{achdou2022income} for detailed description of the underlying theory and methods.
 
-\section{Household's Problem}
-\label{sec:orgfa13185}
+\section{Household's Partial Equilibrium Problem}
+\label{sec:org7677ad2}
 \begin{itemize}
 \item The household solves \[\operatorname*{max}_{\{c_t,d_{t}\}_{t\ge 0}} \mathbb{E}_0 \int_{0}^{\infty}e^{-\rho t}u(c_{t})d t\]
 \item subject to \[\begin{array}{l} {\displaystyle{\dot{b}}_{t}=(1-\xi)w z_{t}+r^{b}(b_{t})b_{t}-d_{t}-\chi(d_{t},a_{t})-c_{t}}\\ {{\displaystyle{\dot{a}}_{t}=r^{a}a_{t}+\xi w z_{t}+d_{t}}}&{{}}\end{array}\]
 \item with constraints \[a_{t}\geq0,\quad b_{t}\geq\underline{{{b}}}\]
-\item where \(a_t, b_t\) denote illiquid and liquid assets, respectively, \(c_t\) is consumption, \(z_t\) is the idiosyncratic productivity which is considered to be a two-state Poisson process with intensities \(\lambda(z,z')\), \(d_t\) is the depositing rate and \(\chi(.,.)\) the transaction cost function. The wage is denoted by \(w\), the return on illiquid asset is \(r^a\) and the return on liquid asset is \(r^b\). Finally we assume that a fraction \(\xi\) of income is automatically deposited in the illiquid account (e.g. capturing automatic payroll deductions into a 401(k) account).
+\item where \(a_t, b_t\) denote illiquid and liquid assets, respectively, \(c_t\) is consumption, \(z_t\) is the idiosyncratic productivity which is considered to be a two-state Poisson process with intensities \(\lambda(z,z')\) \footnote{However, the code is written for Poisson processes with any finite number of states $N_z$}, \(d_t\) is the depositing rate and \(\chi(.,.)\) the transaction cost function. The wage is denoted by \(w\), the return on illiquid asset is \(r^a\) and the return on liquid asset is \(r^b\). Finally we assume that a fraction \(\xi\) of income is automatically deposited in the illiquid account (e.g. capturing automatic payroll deductions into a 401(k) account).
 \item Let's assume the following functional form for the adjustment cost function:
 \end{itemize}
 \begin{equation}
@@ -50,7 +50,7 @@ These notes are based on the problem and code for the "Two Assets and Kinked Adj
 \item the kinked cost component implies inaction,
 \item the convex component implies finite deposit rates.
 \end{enumerate}
-\item In what follows let's denote the net effect of deposit flow \(d\) on cash in hand of agent with illiquid wealth \(a\), by the function \(g(d,a)\):
+\item In what follows let \(g(d,a)\) denote the net effect of deposit policy \(d\) on cash in hand of agent who has illiquid wealth \(a\):
 \end{itemize}
 \[g(d,a) = d + \chi(d,a) \]
 
@@ -59,12 +59,12 @@ These notes are based on the problem and code for the "Two Assets and Kinked Adj
 \begin{enumerate}
 \item First, \(\chi_0, \chi_1 > 0\).
 \item Then, assume \(r^{a} < \frac{1-\chi_0}{\chi_1}\) to ensure households won't accumulate illiquid wealth to infinity.
-\item Finally, assume \(\chi_0 < 1\), otherwise it never makes sense to withdraw. That is, \(g(d,a)\) would be non-negative on the whole domain \(d\in \mathbb{R}\). (this is also implied by 2 if we want to avoid degenerate cases).
+\item Finally, assume \(\chi_0 < 1\), otherwise it never makes sense to withdraw. That is, \(g(d,a)\) would be non-negative on the whole domain \(d\in \mathbb{R}\). (this is also implied by 2 if degenerate cases are ruled out).
 \end{enumerate}
 
 
-\section{Recursive Formulation}
-\label{sec:orgd285960}
+\section{The HJB Equation}
+\label{sec:org3473929}
 The HJB equation is
 \begin{align}
 \label{eq:hjb}
@@ -108,48 +108,45 @@ d=\left(\frac{V_{a}}{u'(c)}-1+\chi_{0}\right)^{-}\frac{a}{\chi_{1}}+\left(\frac{
 
 
 \section{Numerical Solution Without Drift-Splitting}
-\label{sec:orgd93c8f7}
-Kaplan et. al. propose a scheme in which the drift for the liquid asset \(b\) is split in two parts, to upwind the finite difference in a way that is both simple (in the sense of avoiding non-linearities) and monotone. Importantly, the way the boundary conditions are handled in the accompanying code seem also to be consistent with the drift-split idea.\\[0pt]
-
-In this document we explain the details for an upwind implicit scheme without splitting the drift in two, and with handling of boundary conditions in the traditional sense (e.g. as done in \cite{achdou2022income}). The aim is to try the traditional method of building monotone schemes to see whether that would be more robust, particularly at the boundaries, for other problems involving the same two-asset structure.
-
+\label{sec:orgc9e633a}
+Before proceeding further, let's introduce notations for three \emph{special} deposit policy \(d(a,b,z)\) (and their corresponding \(c(a,b,z)\) assuming \(\dot{b}=0\)):
 \begin{itemize}
-\item Before proceeding further, let's specify three useful \emph{special} \(d\) (and the corresponding \(c\) points when \(\dot{b}=0\):
-\begin{itemize}
-\item \(\mathbf{d_0, c_0}\): correspond to \(d=0, c(d=0, \dot{b}=0) = (1-\xi)w z+r^{b}(b)b\)
+\item \(\mathbf{d_0, c_0}\): correspond to \(d=0, c=c(d=0, \dot{b}=0) = (1-\xi)w z+r^{b}(b)b\)
 \item \(\mathbf{\underline{d}, \underline{c}}\): correspond to \(\underline{d} = \left( \frac{\chi_0-1}{\chi_1} \right)a\), \(\underline{c} = c(d=\underline{d}, \dot{b}=0)\). Note that by assumption \ref{list:chi-conditions}, \(\underline{d} < 0\). This is a point which maximises the cash in hand.
-\item \(\mathbf{\bar{d}, \bar{c}}\): correspond to \(\bar{d} = -(r^{a}a+\xi w z), \bar{c} = c \left( d=\bar{d}, \dot{b}=0 \right)\). This points give the threshold for the sign of b-drift to switch.
-\end{itemize}
+\item \(\mathbf{\tilde{d}, \tilde{c}}\): correspond to \(\tilde{d} = -(r^{a}a+\xi w z), \tilde{c} = c \left( d=\tilde{d}, \dot{b}=0 \right)\). This is a policy which makes the a-drift zero (i.e., the threshold at which the sign of the a-drift switches).
 \end{itemize}
 
 
-\subsection{United We Upwind!}
-\label{sec:orga50c78c}
-Here is the general algorithm to upwind without split (the traditional way); given \(V^{n-1}(b_i,a_j,z_k)\) (hereafter \(V_{i,j,k}^{n-1}\) for more concise notation following Kaplan et. al.)
+\subsection{Upwinding in Unity}
+\label{sec:orgb5dd750}
+The general algorithm to upwind without split is very simple; the main idea is to \textbf{nest} (rather than \textbf{split}) \(\dot{a}_t\) inside the upwinding procedure for \(\dot{b}_t\). So we consider upwinding of drift of \(b\), but inside each of backward and forward b-drift cases, we take care of upwinding of \(a\).
+
+More specifically, given \(V^{n-1}(b_i,a_j,z_k)\) as the current guess (hereafter \(V_{i,j,k}^{n-1}\) for more concise notation following KMV)
 \begin{enumerate}
-\item Start with \(c^{n,F}\) (that is, use \(V_b^{n,F}\) to update the consumption policy \(c^n\)).
-\item Use \(c^{n,F}\) with equation \eqref{eq:d-policy-c} \emph{subject to upwinding with respect to the drift of \(a\)} to update the deposit policy \(d^{n,F}\). More specifically, if we denote by \(d(c,V_a)=d(c,V_a;a_j)\) the optimal \(d\) according to equation \eqref{eq:d-policy-c},
+\item Start with \(c^{n,F}\) (that is, use \(V_b^{n-1,F}\) to update the consumption policy \(c^n\)).
+\item Use \(c^{n,F}\) with equation \eqref{eq:d-policy-c} \emph{subject to upwinding with respect to the drift of \(a\)} to update the deposit policy \(d^{n,F}\). More specifically, if we denote by \(d(c,V_a)=d(c,V_a;a_j)\) the optimal \(d\) given by equation \eqref{eq:d-policy-c},
 \begin{enumerate}
 \item If \(d(c^{n,F}, V_a^{n,F}) > -(r^a a_j + \xi w z_k)\), then \(d^{n,F} = d(c^{n,F}, V_{a}^{n,F})\).
-\item If \(d(c^{n,F}, V_a^{n,B}) < -(r^a a_j + \xi w z_k)\), then \(d^{n,F} = d(c^{n,F}, V_{a}^{n,B})\).
-\item If neither of the above holds, then \emph{stay put with respect to a}, that is, \(\dot{a} = 0\) which implies \(d^{n,F} = - (r^a a_j + \xi w z_k)\).
+\item If \(d(c^{n,F}, V_a^{n,B}) < -(r^a a_j + \xi w z_k)\), then \(d^{n,F}= d(c^{n,F}, V_{a}^{n,B})\).
+\item If neither of the above holds, then \emph{stay put with respect to a}, that is, \(\dot{a} = 0\) which implies \(d^{n,F}(b_i, a_j, z_k) = \tilde{d}(a_j, z_k) = - (r^a a_j + \xi w z_k)\).
 \end{enumerate}
-\item After solving for \(d^{n,F}\) using \(c^{n,F}\), now plug them back in the drift for \(b\) to check whether they're consistent. In particular, if \(c^{n,F} + g(d^{n,F}, a_j) < (1-\xi) w z_k + r^b(b_i) b_i\), then we update the optimal consumption and depositing policies as: \(c^n = c^{n,F}, d^n = c^{n,F}\). Proceed with updating the value function by the conventional upwinding according to drifts computed using these policies.
-\item Otherwise, repeat the same procedure for \(c^{n,B}\). That is, compute \(d^{n,B}\) similar to above, and then if \(c^{n,B} + g(d^{n,B}, a_j) > (1-\xi) w z_k + r^b(b_i) b_i\), consider \(c^n = c^{n,B}, d^n = d^{n,B}\), as optimal policies, and proceed from there.
+\item After solving for \(d^{n,F}\) using \(c^{n,F}\), now plug them back in the drift for \(b\) to check whether they are consistent. In particular, if \(c^{n,F} + g(d^{n,F}, a_j) < (1-\xi) w z_k + r^b(b_i) b_i\), then we update the optimal consumption and depositing policies as: \(c^n = c^{n,F}, d^n = c^{n,F}\).
+\item Otherwise, repeat the same procedure for \(c^{n,B}\). That is, compute \(d^{n,B}\) similar to above, and then if \(c^{n,B} + g(d^{n,B}, a_j) > (1-\xi) w z_k + r^b(b_i) b_i\), consider \(c^n = c^{n,B}, d^n = d^{n,B}\) as optimal policies, and proceed from there.
 \item If none of the two options above led to consistent drift for \(b\), then solve for the optimal policies assuming that we are put with respect to \(b\), i.e., enforce \(\dot{b} = 0\). More on that below.
+\item Proceed with updating the value function by the conventional upwinding according to drifts computed using these policies.
 \end{enumerate}
 
-\subsection{Note on Implementation and Comparison with Kaplan et. al. Code}
-\label{sec:org5b4b825}
-How to implement this algorithm, particularly to make it amenable to vectorisation that is important for some languages including Matlab? And how does the scheme compare with what the scheme suggested in Kaplan et. al.? For now, we ignore step 5 (\(\dot{b} = 0\)) and focus on steps 2-4.
+\subsection{Notes on Implementation}
+\label{sec:org613628c}
+How to implement this algorithm, particularly how to make it amenable to vectorisation that is important for code efficiency in languages such as Matlab? For now, we ignore step 5 (\(\dot{b} = 0\)) and focus on steps 2-4.
 
 \begin{itemize}
-\item Let's rewrite our algorithm in terms of the notations used in Kaplan et. al. In particular, \(d^{FB}\) denotes the d policy resulting from applying \eqref{eq:d-policy} to \(V_b^F\) and \(V_a^B\); \(d^{BB}\), \(d^{BF}\) and \(d^{FF}\) are defined similarly, with the first letter in superscript denoting the direction of finite difference for \(V_b = \frac{\partial V}{\partial b}\) and the second letter for the direction of \(V_a = \frac{\partial V}{\partial a}\). Also, \(d^B\) denotes the final upwind policy for \(d\), if the backward direction \(V_b^B\) is used for estimating the partial derivative of \(V\) with respect to \(b\).
-\item Then, \(d^F, d^B\) would be given by
+\item Let's rewrite our algorithm in terms of the notations used in KMV. In particular, \(d^{FB}\) denotes the d policy resulting from applying \eqref{eq:d-policy} to \(V_b^F\) and \(V_a^B\); \(d^{BB}\), \(d^{BF}\) and \(d^{FF}\) are defined similarly, with the first letter in superscript denoting the direction of finite difference for \(V_b = \frac{\partial V}{\partial b}\) and the second letter for the direction of \(V_a = \frac{\partial V}{\partial a}\). Moreover, \(d^B\) denotes the final upwind policy for \(d\) given the backward direction \(V_b^B\) is used for estimating the partial derivative of \(V_{b}\).
+\item Using that notation, \(d^F, d^B\) would be given by
 \end{itemize}
 \begin{align*}
-d^F = d^{FF} \mathbb{I}_{\left[d^{FF} > \bar{d}(a,z) \right]} + d^{FB} \mathbb{I}_{\left[d^{FB} < \bar{d}(a,z) \right]}\\
-d^B = d^{BF} \mathbb{I}_{\left[d^{BF} > \bar{d}(a,z) \right]} + d^{BB} \mathbb{I}_{\left[d^{BB} < \bar{d}(a,z) \right]}
+d^F = d^{FF} \mathbb{I}_{\left[d^{FF} > \tilde{d}(a,z) \right]} + d^{FB} \mathbb{I}_{\left[d^{FB} < \tilde{d}(a,z) \right]}\\
+d^B = d^{BF} \mathbb{I}_{\left[d^{BF} > \tilde{d}(a,z) \right]} + d^{BB} \mathbb{I}_{\left[d^{BB} < \tilde{d}(a,z) \right]}
 \end{align*}
 \begin{itemize}
 \item Given \(d^F, d^B\), estimation of optimal depositing policy \(d\) would be updated as
@@ -159,26 +156,21 @@ d &= d^B \mathbb{I}_{\left[ c^B + g(d^B,a) > (1-\xi) w z + r^bb \right]} + d^F \
 &= d^B \mathbb{I}_{\left[ \dot{b} \left(c^B, d^B\right) < 0 \right]} + d^F \mathbb{I}_{\left[ \dot{b} \left(c^F, d^F\right) > 0 \right]}
 \end{align*}
 \begin{itemize}
-\item Using the notation from Kaplan et. al., and for comparison, the last equation can be re written as
+\item Using the notation from KMV, and for comparison, the last equation can be re written as
 \end{itemize}
 \[ d = d^B \mathbb{I}_{\left[s^{d,B}<-s^{c,B}  \right]} + d^F \mathbb{I}_{\left[ s^{d,F} > -s^{c,F} \right]}  \]
 
-
-\subsubsection{Comparison with Kaplan et. al.}
-\label{sec:org14444ff}
 \begin{itemize}
-\item Obviously, there is no splitting. The indicators which tell us whether to use \(d^B\) or \(d^F\) are the same indicators telling us whether to use \(c^B\) or \(c^F\). To me this sounds neater and more inline with traditional upwinding.
-\item The idea here is \textbf{to nest, rather than split} the two upwindings. I.e., upwinding with respect to a-drift is taken care of when forming \(d^B, d^F\) (inner level). Then at the outer level, the indicator just forms with respect to sign of \(\dot{b}\).
-\item As apparent from above, the implementation is not more difficult, maybe even a bit shorter. The only additional element is \(\bar{d}\) which can be computed outside loop. However, policy updates seem to be different. In forming indicators for \(d^B, d^F\) I take \(\bar{d}(a,z)\) as the point of reference, while Kaplan et. al. take 0. Also in forming \(d\), I take the sign of the whole \(s^b\) drift as indicator, while Kaplan et. al. take only the sign of \(s^d = -g(d,a)\). So the two implementations differ in \textbf{step-wise policy update}. However, this does not necessarily imply they converge to different solutions.
-\item There is still one important piece left unaddressed: policies for the case of \(\dot{b} = 0\), which happens at the boundaries as well as when none of the two indicators above leads to consistent b-drifts.
+\item Obviously, there is no splitting. So it's different from KMV in the sense that, here, the indicators which tell us whether to use \(d^B\) or \(d^F\) (or none) are the same indicators telling us whether to use \(c^B\) or \(c^F\) (or none).
+
+\item However, as apparent from above, the implementation up to this point is relatively similar. The key difference is that in forming the indicators for \(d^B, d^F\) we take \(\tilde{d}(a,z)\) as the point of reference, while KMV take 0. Also in forming \(d\), we take the sign of the whole \(s^b\) drift as the indicator, while KMV take only the sign of \(s^d = -g(d,a)\).
 \end{itemize}
 
-\subsection{Updating Policies for \(\dot{b}=0\)}
-\label{sec:org0ad74ce}
-There are cases in which we want to solve for the optimal policies, given \(\dot{b}=0\). This particularly matters for enforcing the borrowing constraint at the boundary of the grid, but also because, as discussed above, neither \(V_b^{n,F}\) nor \(V_b^{n,B}\) leads to consistent b-drifts. 
-\begin{itemize}
-\item In this case the HJB simplifies to
-\end{itemize}
+There is still one important piece left unaddressed: policies for the case of \(\dot{b} = 0\), which happens at the lower boundary of the b-drift, as well as when none of the two indicators above leads to consistent b-drifts and we want to have a consistent implementation of \(\dot{b}_t = 0\).
+
+\subsection{Updating Policies for \(\dot{b}=0\) (and Boundary Conditions for \(b\))}
+\label{sec:org0979e6c}
+In this case the HJB simplifies to
 \begin{align}
 \label{eq:hjb-d}
 \rho V(a,b,z)=\operatorname*{max}_{d}\ u(c(d))& + V_{a}(a,b,z)(r^{a}a+\xi w z+d) \nonumber \\
@@ -187,34 +179,46 @@ There are cases in which we want to solve for the optimal policies, given \(\dot
 \begin{itemize}
 \item where \(c(d)=(1-\xi)w z_{t}+r^{b}(b)b-g(d,a)\)
 \item FOC for \(d\) satisfies \[u'(c)g'(d) = V_a(a,b,z) \implies u'\left((1-\xi)w z+r^{b}(b)b-g(d,a) \right) \left( 1+\chi_{d}(d,a) \right) = V_a(a,b,z)\] with \(\chi_d(d,a)\) given by \eqref{eq:chi-d}.
-\item Note that looking at the interval \([\underline{d}, \infty)\) there should exist a unique solution "for updating optimal \(d\)". Assuming that \(V_a(a,b,z)\) is a positive number, then the LHS is zero at \(\underline{d}\), and it's strictly increasing in \(d\). So there should be a unique solution for it "unless" the solution is "lost" in the jump that happens at 0, in that case we update our approximation of the optimal \(d\) to be zero (case 2 below).
+\item Note that looking at the interval \([\underline{d}, \infty)\) there should exist a unique solution "for updating optimal \(d\)". Assuming that \(V_a(a,b,z)\) is a positive number, then the LHS is zero at \(\underline{d}\), and it's strictly increasing in \(d\). So there should be a unique solution for it "unless" the solution is "lost" in the jump that happens at 0, in that case we update our approximation of the optimal \(d\) to be zero (case 2 below). In other words, (LHS - RHS) of the FOC above is increasing but not continuous.
 \item The LHS is not only non-linear but kinked, which makes it a bit messy to solve. To solve for d non-linearly using this equation, two things should be taken care of; first whether to use \(V_a^F\) or \(V_a^B\) to properly upwind, second the jump in \((1+\chi_d)\) (artefact of the kink in adjustment comes).
 \end{itemize}
 
 
-Now to update the optimal policy for the case of \(\dot{b}=0\), consider these cases:
+Now to update the optimal deposit policy for the case of \(\dot{b}=0\), one can proceed with these cases:
 \begin{enumerate}
-\item Either \(u'(c_0)(1+\chi_0) < V_a^{F}\): In this case solve for optimal d on \([0,\bar{d})\).
+\item Either \(u'(c_0)(1+\chi_0) < V_a^{F}\): In this case solve for optimal d on \([0,{d}^{max})\).
 \item Or \(\frac{V_a^{F}}{1+\chi_0} < u'(c_0) < \frac{V_a^{F}}{1-\chi_0}\), in which case optimal d = 0.
 \item Finally, if \(u'(c_0)(1-\chi_0) > V_a^{F}\)
 \begin{enumerate}
-\item If \(\underline{d} > \bar{d}\), solve the FOC for d, again using \(V_a^F\), on \([\underline{d},0]\).
+\item If \(\underline{d} > \tilde{d}\), solve the FOC for d, again using \(V_a^F\), on \([\underline{d},0]\).
 \item Else
 \begin{enumerate}
-\item If \(u'(\bar{c})(1+\chi_d(\bar{d},a) < V_a^F\), then: solve for \(d\) on \([ \underline{d}, \bar{d} ]\) using \(V_a^B\).
-\item If \(u'(\bar{c})(1+\chi_d(\bar{d},a) < V_a^F\), solve for \(d\) on \([ \bar{d}, 0]\) using \(V_a^F\).
-\item Otherwise, optimal \(d = \bar{d}\) (that is, a-drift is zero).
+\item If \(u'(\tilde{c})(1+\chi_d(\tilde{d},a) < V_a^F\), then: solve for \(d\) on \([ \underline{d}, \tilde{d} ]\) using \(V_a^B\).
+\item If \(u'(\tilde{c})(1+\chi_d(\tilde{d},a) < V_a^F\), solve for \(d\) on \([ \tilde{d}, 0]\) using \(V_a^F\).
+\item Otherwise, optimal \(d = \tilde{d}\) (that is, a-drift is zero).
 \end{enumerate}
 \end{enumerate}
 \end{enumerate}
+
+Some comments on implementation:
+\begin{itemize}
+\item If this seems a bit obscure, we encourage you to draw a graph of \(g(d,a)\) and designate the points \(\tilde{d}, \underline{d}, \text{and } d_0\) on it, to see why the steps above make sense.
+\item In each case above, after solving for the optimal \(d\), the consumption policy \(c\) can be computed using the \(\dot{b}_t=0\) condition, i.e.,
+\end{itemize}
+\[c(b,a,z) = (1-\xi)wz +  r_b(b) b - g(a,d)\]
+\begin{itemize}
+\item Variables in the code: in the accompanied Matlab code, \(\tilde{d}\) is denoted by \(d_{zerodrift}\) and \(c_0, d_0\) denote the \(c\) and \(d\) policies for the case in which \(\dot{b}_t=0\), (rather than \(d=0\)).
+\item To solve for \(d\) (non-linearly), in cases 1, 3a and 3b above, one case use one of the bracketing methods, e.g. Brent's method. The intervals suggested should give a negative evaluation of the (LHS - RHS) of the FOC on the lower bound, and positive on the upper bound, assuming \(V_a\) is positive. In the Matlab code we use \texttt{fzero}.
+\item To code can be easily vectorised, either using Matlab built-in vectorisation functions such as \texttt{funarray}, or by implementing a user defined Brent's method. We have not used that for better readability.
+\end{itemize}
 
 \emph{Again, this can be vectorised similar to above.}
 
 \subsection{Updating Policies for \(\dot{a}=0\)}
-\label{sec:orgad3b140}
+\label{sec:org084458d}
 Which we use at a-boundaries or where neither \(V_a^F\) nor \(V_a^B\) leads to consistent policies. This bit is straightforward. Set \(d = - (r^a a + \xi w z)\), then solve for \(c\) by upwinding with respect to \(\dot{b}\).
 
-\textbf{Note:} As long as \(V\) is concave and monotone in each of assets separately, the above scheme is unambiguous, monotone and upwind (in the conventional sense!)
+\textbf{Note:} As long as \(V\) is concave and monotone in each of assets separately, the above scheme is unambiguous, monotone and upwind. See \cite{achdou2022income} for proofs.
 
 
 \newpage
