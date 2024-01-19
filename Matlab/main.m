@@ -9,8 +9,10 @@ par = parameters;
 cellfun(@(x) assignin('base', x, par.(x)), fieldnames(par));
 
 % Check the parameter values are valid
+assert(rho - ra > 0, 'ra too large, more than compensates discount rate')
+assert(rho - rb_pos > 0, 'rb_pos too large, more than compensates discount rate')
 assert(chi0 < 1,'chi0 large, not interesting!');
-assert(ra*chi1 < 1-chi0, 'ra too large, illiquid wealth accumulates to infinity');
+assert(ra*chi1 < 1-chi0, "ra too large, illiquid wealth accumulates faster than the fastest withdrawal rate that's optimal under adjustment costs -> desired infinite accumulation");
 
 % -------------------------------------------------------------------------
 % Prepare endogenous state grids
@@ -24,11 +26,6 @@ cellfun(@(x) assignin('base', x, grids.(x)), fieldnames(grids));
 % Grid of asset returns
 Rb = rb_pos.*(bbb>0) + rb_neg.*(bbb<0);
 Ra = repmat(ones(I,J)*ra,1,1,Nz);
-
-% raa = ones(1,J)*ra;
-% % if ra>>rb, impose tax on ra*a at high a, otherwise some households
-% % accumulate infinite illiquid wealth (not needed if ra is close to or less than rb)
-% tau = 10; raa = ra.*(1 - (1.33.*amax./a).^(1-tau)); % plot(a,raa.*a);
  
 % Two particular (arrays of) points on the d-domain
 d_zerodrift = -(Ra .* aaa + xi * w * zzz); % The d policy that ensures zero a-drift
@@ -42,7 +39,7 @@ Bswitch     = kron(la_mat, speye(I*J));
 
 % Initial guess
 v0   = U((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb,par)/rho; 
-vNew = v0; % the most recent guess
+vNew = v0; % The most recent guess
 
 % Main loop
 dist = ones(maxit,1);
@@ -70,12 +67,8 @@ toc
 % -------------------------------------------------------------------------
 % Solve stationary distribution
 
-g = stationary_dist(A, a, b, par);
-g2 = stationary_dist2(A, a, b, par);
-
-max(max(max(abs(g-g2))))
-sum(sum(sum(abs(g-g2))))
+g  = stationaryDistribution(A, a, b, par);
 
 % -------------------------------------------------------------------------
 % Make plots of the stationary policies & distributions
-stationary_figures;
+stationaryFigures;

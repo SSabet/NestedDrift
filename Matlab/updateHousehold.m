@@ -4,7 +4,7 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
     cellfun(@(x) assignin('caller', x, grids.(x)), fieldnames(grids));
     
-    aaa = grids.aaa;
+    aaa = grids.aaa; bbb = grids.bbb; zzz = grids.zzz;
     
     % Preallocate
     VbF = zeros(I,J,Nz);
@@ -29,10 +29,10 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     c_B(2:I,:,:)   = MU_inv(VbB(2:I,:,:),par);
     c_F(1:I-1,:,:) = c_B(2:I,:,:);
 
-    d_BB = two_asset_kinked_FOC(VaB, VbB, a, par.chi0, par.chi1);
-    d_BF = two_asset_kinked_FOC(VaF, VbB, a, par.chi0, par.chi1);
-    d_FB = two_asset_kinked_FOC(VaB, VbF, a, par.chi0, par.chi1);
-    d_FF = two_asset_kinked_FOC(VaF, VbF, a, par.chi0, par.chi1);
+    d_BB = FOC_dPolicy(VaB, VbB, a, par.chi0, par.chi1);
+    d_BF = FOC_dPolicy(VaF, VbB, a, par.chi0, par.chi1);
+    d_FB = FOC_dPolicy(VaB, VbF, a, par.chi0, par.chi1);
+    d_FF = FOC_dPolicy(VaF, VbF, a, par.chi0, par.chi1);
 
     % Impose the zero drift deposit in cases where the illiquid asset will overrun its state bounds otherwise
     d_FF(:,J,:) = d_zerodrift(:,J,:);
@@ -52,7 +52,7 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     
     % Build backward liquid drift policy, and an indicator for when it's consitent with itself
     sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
-        two_asset_kinked_cost(d_B,aaa, chi0, chi1) - c_B;
+        adjustmentCost(d_B,aaa, chi0, chi1) - c_B;
     
     % At lower b-boundary don't use Vb_B; if Vb_F dosn't work, leave it to the next part that deals with b-drift zero
     I_B = sb_B < 0; 
@@ -62,19 +62,19 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     d_F = d_FF.*I_FF + d_FB.*I_FB + d_zerodrift.*(~I_FB .* ~I_FF);
     d_F(I,:,:) = 0; 
     sb_F = (1-xi)*w*zzz + Rb.*bbb - d_F -...
-        two_asset_kinked_cost(d_F,aaa, chi0, chi1) - c_F;
+        adjustmentCost(d_F,aaa, chi0, chi1) - c_F;
     I_F = (sb_F > 0) .* (I_B==0); % Giving precedence to the backward drift if there's a clash
     I_F(I,:,:) = 0;
     
     % Find consumption and deposit policies for the case of zero liquid drift
     I_0 = 1 - I_B - I_F;
     d_0 = bdotzero(I_0,VaF,VaB,b,a,z,Rb,Ra,d_zerodrift,d_lower,par);
-    c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - two_asset_kinked_cost(d_0, aaa, chi0, chi1);
+    c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - adjustmentCost(d_0, aaa, chi0, chi1);
     
     % Build unconditional policies
     c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
     d  = d_F.*I_F + d_B.*I_B + d_0.*I_0;
-    sb = (1-xi)*w*zzz + Rb.*bbb - c - d - two_asset_kinked_cost(d, aaa, chi0, chi1);
+    sb = (1-xi)*w*zzz + Rb.*bbb - c - d - adjustmentCost(d, aaa, chi0, chi1);
     sa = Ra.*aaa + xi .* w .* zzz + d;
         
     % if (sum(sum(sum(I_0<0)))>0)
