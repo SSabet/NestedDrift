@@ -70,6 +70,11 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     I_0 = 1 - I_B - I_F;
     d_0 = bdotzero(I_0,VaF,VaB,b,a,z,Rb,Ra,d_zerodrift,d_lower,par);
     c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - adjustmentCost(d_0, aaa, chi0, chi1);
+
+    % Check that the zerodrift policy leads to MU(c) between the forward
+    % and backward derivatives
+    mu_check = ((MU(c_0,par) >= VbF) & (MU(c_0,par) <= VbB)).*I_0 + (1-I_0);
+    assert(all(reshape(mu_check(2:I-1,:,:),1,[])) == 1, 'Error: MU(c_0) is not within the bounds of VbF and VbB at interior points!')
     
     % Build unconditional policies
     c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
