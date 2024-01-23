@@ -1,4 +1,4 @@
-function g = stationary_dist(A, a, b, par)
+function g = stationaryDistribution(A, a, b, par)
 
     % Unpack parameter values
     I = par.I; J = par.J; Nz = par.Nz; M = I*J*Nz;
