@@ -13,6 +13,7 @@ assert(rho - ra > 0, 'ra too large, more than compensates discount rate')
 assert(rho - rb_pos > 0, 'rb_pos too large, more than compensates discount rate')
 assert(chi0 < 1,'chi0 large, not interesting!');
 assert(ra*chi1 < 1-chi0, "ra too large, illiquid wealth accumulates faster than the fastest withdrawal rate that's optimal under adjustment costs -> desired infinite accumulation");
+assert(rb_neg * bmin + (1-xi)*w*z(1) > 0, "Liquid flow must be positive at all points in the state space! Consider raising w, z(low), or moving the borrowing constraint closer to zero");
 
 % -------------------------------------------------------------------------
 % Prepare endogenous state grids
