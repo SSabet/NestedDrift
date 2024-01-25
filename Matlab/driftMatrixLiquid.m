@@ -2,8 +2,9 @@ function BB = driftMatrixLiquid(sb, bbb, par)
     
     % Unpack parameter values
     I = par.I; J = par.J; Nz = par.Nz;
+    diag = 1:(I*J*Nz);
     
-    % preallocating
+    % Preallocating memory
     X = zeros(I,J,Nz);
     Z = zeros(I,J,Nz);
 
@@ -11,19 +12,17 @@ function BB = driftMatrixLiquid(sb, bbb, par)
     X(2:I,:,:)   = -min(sb(2:I,:,:),0)  ./(bbb(2:I,:,:)- bbb(1:I-1,:,:));
     Z(1:I-1,:,:) =  max(sb(1:I-1,:,:),0)./(bbb(2:I,:,:)- bbb(1:I-1,:,:));
     Y            = -(X+Z);
-
-    % Build the sparse drift matrix information
-    rows = []; cols = []; vals = [];
-    for k = 1:Nz
-       for j = 1:J
-           base = (I*J*(k-1))+(I*(j-1));
-           rows = [rows, base+(1:I), base+(1:(I-1)), base+(2:I)]; % Order is central diag, updiag, lowdiag
-           cols = [cols, base+(1:I), base+(2:I),     base+(1:(I-1))];
-           vals = [vals; squeeze(Y(:,j,k)); squeeze(Z(1:(I-1),j,k)); squeeze(X(2:I,j,k))];
-       end
-    end
     
-    % ...and make a sparse matrix out of it
+    % Reshape inputs to long
+    longX = reshape(X,1,[]);
+    longZ = reshape(Z,1,[]);
+    
+    % Build elements
+    rows = [diag(2:end)     diag            diag(1:(end-1))];
+    cols = [diag(2:end)-1   diag            diag(1:(end-1))+1];
+    vals = [longX(2:end)    reshape(Y,1,[]) longZ(1:(end-1))];
+    
+    % Build sparse transition matrix
     BB = sparse(rows,cols,vals,I*J*Nz,I*J*Nz);
     
 return
