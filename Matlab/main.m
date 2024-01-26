@@ -39,7 +39,7 @@ Bswitch     = kron(la_mat, speye(I*J));
 % Solve stationary policies & value
 
 % Initial guess
-v0   = U((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb,par)/rho; 
+v0   = U((1-xi)*w*zzz + Ra.*aaa + Rb.*(bbb+max(0,-bmin)+1),par)/rho; 
 vNew = v0; % The most recent guess
 
 % Main loop
