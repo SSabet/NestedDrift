@@ -22,7 +22,7 @@ function par = parameters()
 
     % Asset grid settings
     par.I          = 80;
-    par.bmin       = 0.0;
+    par.bmin       = -2.0;
     par.bmax       = 50.0;
 
     par.J          = 70;
@@ -34,7 +34,7 @@ function par = parameters()
     % 'NL_symmetric' = nonlinear with concentration of points on both ends,
     % 'NL_lefts'     = nonlinear grid with concentration of points at the left end (lower bound),
     % 'NL_rights'    = nonlienar grid with concentration of points at the right end
-    par.bgrid_type = 'NL_lefts';
+    par.bgrid_type = 'Linear';
     par.agrid_type = 'NL_lefts';
 
     % Estimation parameters
