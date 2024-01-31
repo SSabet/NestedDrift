@@ -1,3 +1,12 @@
+%==========================================================================
+% This code solves the household block of a continuous time model with
+% idiosyncratic risk, and two-assets with a convex adjustment cost on 
+% transfers between the two, as in Kaplan, Moll & Violante (2018)
+%
+% Written by: Soroush Sabet & Patrick Schneider
+% Date: February 2024
+%==========================================================================
+
 clearvars; close; clc;
 
 tic;
