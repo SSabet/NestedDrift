@@ -1,6 +1,8 @@
 % ==============================================================================
 % Plot figures
+% ==============================================================================
 
+% ------------------------------------------------------------------------------
 % Consumption policies
  
 figure(1)
@@ -23,7 +25,9 @@ xlim([bmin bmax])
 ylim([amin amax])
 title('Consumption, High Type')
 
+% ------------------------------------------------------------------------------
 % Deposit policies
+
 figure(2)
 set(gcf,'PaperPosition',[0 0 30 10])
 subplot(1,2,1)
@@ -46,7 +50,9 @@ xlim([bmin bmax])
 ylim([amin amax])
 title('Deposits, High Type')
 
+% ------------------------------------------------------------------------------
 % Liquid saving policies
+
 figure(3)
 set(gcf,'PaperPosition',[0 0 30 10])
 subplot(1,2,1)
@@ -67,7 +73,9 @@ xlim([bmin bmax])
 ylim([amin amax])
 title('Liquid Savings, High Type')
 
+% ------------------------------------------------------------------------------
 % Illiquid saving policies
+
 figure(4)
 set(gcf,'PaperPosition',[0 0 30 10])
 subplot(1,2,1)
@@ -88,7 +96,9 @@ xlim([bmin bmax])
 ylim([amin amax])
 title('Illiquid Savings, High Type')
 
+% ------------------------------------------------------------------------------
 % Distributions
+
 figure(5)
 set(gcf,'PaperPosition',[0 0 30 10])
 subplot(1,2,1)
@@ -109,7 +119,9 @@ xlim([bmin bmax])
 ylim([amin amax])
 title('Stationary Distribution, High Type')
 
+% ------------------------------------------------------------------------------
 % Phase diagrams overlaid with density contour
+
 figure(10)
 gsig = g .* (g>1e-10);
 sc = 3; % Determines density of arrows on plot
