@@ -1,8 +1,7 @@
-%%%%%%%%%%%
-% FIGURES %
-%%%%%%%%%%%
+% ==============================================================================
+% Plot figures
 
- % Consumption policies
+% Consumption policies
  
 figure(1)
 set(gcf,'PaperPosition',[0 0 30 10])
@@ -126,7 +125,7 @@ title('Phase diagram, Low Type')
 hold off
 
 subplot(1,2,2)
-quiver(bbb(1:sc:end,1:sc:end,1), aaa(1:sc:end,1:sc:end,1), sb(1:sc:end,1:sc:end,1), sa(1:sc:end,1:sc:end,1),0)
+quiver(bbb(1:sc:end,1:sc:end,2), aaa(1:sc:end,1:sc:end,2), sb(1:sc:end,1:sc:end,2), sa(1:sc:end,1:sc:end,2),0)
 hold on
 contour(b,a,gsig(:,:,2)')
 xlabel('Liquid Wealth, b')
