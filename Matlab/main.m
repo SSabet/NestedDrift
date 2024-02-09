@@ -46,31 +46,48 @@ Bswitch     = kron(la_mat, speye(I*J));
 
 % -------------------------------------------------------------------------
 % Solve stationary policies & value
-
 % Initial guess
 v0   = U((1-xi)*w*zzz + Ra.*aaa + Rb.*bbb,par)/rho; 
 vNew = v0; % The most recent guess
+v0_alt = v0;
 
 % Main loop
-dist = ones(maxit,1);
+dist = ones(maxit,1); slowCount = 0;
 for n=1:maxit
     
-    % Relabel the current value guess
-    vOld = vNew;
-    
-    % Update policies & value
-    [c,d,sb,sa,vNew,A] = updateHousehold(vOld,Rb,Ra,d_zerodrift,d_lower,Bswitch,grids,par);
-    
-    % Check convergence & iterate
-    vChange = vOld - vNew;
-    
-    dist(n) = max(max(max(abs(vChange))));
-    disp(['Value Function, Iteration ' int2str(n) ', max Vchange = ' num2str(dist(n))]);
-    if dist(n)<crit
-        disp('Value Function Converged, Iteration = ')
-        disp(n)
-        break
-    end 
+    try
+        % Relabel the current value guess
+        vOld = vNew;
+        
+        % Update policies & value
+        [c,d,sb,sa,vNew,A] = updateHousehold(vOld,Rb,Ra,d_zerodrift,d_lower,Bswitch,grids,par);
+        
+        % Check convergence & iterate
+        vChange = vOld - vNew;
+        
+        dist(n) = max(max(max(abs(vChange))));
+        disp(['Value Function, Iteration ' int2str(n) ', max Vchange = ' num2str(dist(n))]);
+        if dist(n)<crit
+            disp('Value Function Converged, Iteration = ')
+            disp(n)
+            break
+        end 
+    catch
+        disp('\nTripped - looking for better guess\n')
+        vNew = v0_alt; %Reset the starting guess
+        par.Delta = .5; %Slow things down
+        slowCount = 1;
+    end
+
+    if slowCount >0
+        slowCount = slowCount + 1;
+        if slowCount > 10
+            disp('\nGoing fast again\n')
+            v0_alt = vNew;
+            slowCount = 0;
+            par.Delta = 1e8;
+        end
+    end
 end
 toc
 
