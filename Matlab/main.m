@@ -73,7 +73,7 @@ for n=1:maxit
             break
         end 
     catch
-        disp('\nTripped - looking for better guess\n')
+        fprintf('\nTripped - looking for better guess\n')
         vNew = v0_alt; %Reset the starting guess
         par.Delta = .5; %Slow things down
         slowCount = 1;
@@ -82,7 +82,7 @@ for n=1:maxit
     if slowCount >0
         slowCount = slowCount + 1;
         if slowCount > 10
-            disp('\nGoing fast again\n')
+            fprintf('\nGoing fast again\n')
             v0_alt = vNew;
             slowCount = 0;
             par.Delta = 1e8;
