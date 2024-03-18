@@ -96,6 +96,10 @@ toc
 
 g  = stationaryDistribution(A, a, b, par);
 
+% to check the stationary distribution/measure
+g_next = (speye(Nz*I*J) - A'*(1000))\g(:);
+max(abs(g_next- g(:)))
+
 % -------------------------------------------------------------------------
 % Make plots of the stationary policies & distributions
 stationaryFigures;

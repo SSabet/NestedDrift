@@ -21,17 +21,18 @@ function g = stationaryDistribution(A, a, b, par)
 
     % Fix one value so matrix isn't singular:
     vec        = zeros(M,1);
-    iFix       = 10;
+    iFix       = I*J-2;
     vec(iFix)  = 1e-8;
     AT         = A'; 
     AT(iFix,:) = [zeros(1,iFix-1),1,zeros(1,M-iFix)];
     
     % Solve system & rebase
-    g_stacked = AT\vec; g_stacked = (g_stacked/sum(g_stacked));
+    g_stacked = AT\vec;
+    g = reshape(g_stacked/sum(g_stacked), I, J, Nz); % returns the measure
 
     % Reshape and convert histogram to density
-    g = reshape(g_stacked,I,J,Nz) ./ dadbdz;
+    % g = g ./ dadbdz;
 
-    assert(abs(sum(sum(sum(g.*dadbdz)))-1)<1e-10, "Error in computing the stationary distribution.")
+    % assert(abs(sum(sum(sum(g.*dadbdz)))-1)<1e-10, "Error in computing the stationary distribution.")
         
 end
