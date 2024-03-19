@@ -1,4 +1,8 @@
-function g = stationaryDistribution(A, a, b, par)
+function [g, dadbdz] = stationaryDistribution(A, a, b, par, type)
+
+    if nargin < 5
+        type =  'measure'
+    end
 
     % Unpack parameter values
     I = par.I; J = par.J; Nz = par.Nz; M = I*J*Nz;
@@ -30,8 +34,10 @@ function g = stationaryDistribution(A, a, b, par)
     g_stacked = AT\vec;
     g = reshape(g_stacked/sum(g_stacked), I, J, Nz); % returns the measure
 
-    % Reshape and convert histogram to density
-    % g = g ./ dadbdz;
+    % convert histogram to density
+    if (type == 'density')
+        g = g ./ dadbdz;
+    end
 
     % assert(abs(sum(sum(sum(g.*dadbdz)))-1)<1e-10, "Error in computing the stationary distribution.")
         
