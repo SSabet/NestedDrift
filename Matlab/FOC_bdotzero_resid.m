@@ -1,5 +1,9 @@
-function noarb = FOC_bdotzero_resid(b,a,zk,d,Va,forward,rb,par)
+function noarb = FOC_bdotzero_resid(b,a,z,d,Va,forward,par)
+    
+    % Determine consumption from the passed information
+    c = driftLiquid(0,d,b,a,z,par);
 
-   noarb = MU(rb*b + (1-par.xi)*par.w*zk - d - adjustmentCost(d,a, par.chi0, par.chi1),par).*...
-        (1 + par.chi0 * (2*forward - 1) + par.chi1 * d /a) - Va;
+    % And evaluate the no-arbitrage condition with these policies
+    noarb = MU(c,par).*(1 + par.chi0 * (2*forward - 1) + par.chi1 * d /a) - Va;
+
 end

@@ -1,7 +1,7 @@
 function [g, dadbdz] = stationaryDistribution(A, a, b, par, type)
 
     if nargin < 5
-        type =  'measure'
+        type = 'measure';
     end
 
     % Unpack parameter values
@@ -38,7 +38,5 @@ function [g, dadbdz] = stationaryDistribution(A, a, b, par, type)
     if (type == 'density')
         g = g ./ dadbdz;
     end
-
-    % assert(abs(sum(sum(sum(g.*dadbdz)))-1)<1e-10, "Error in computing the stationary distribution.")
         
 end

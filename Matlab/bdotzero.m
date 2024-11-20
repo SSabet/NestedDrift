@@ -1,7 +1,12 @@
-function dpol = bdotzero(bdrift_zero,VaF,VaB,b,a,z,Rb,Ra, d_zerodrift, d_lower,par)
+function dpol = bdotzero(bdrift_zero,VaF,VaB,grids,par)
 
     % Unpack parameters & grids
-    cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
+    b = grids.b; a = grids.a; z = par.z; I = par.I; J = par.J; Nz = par.Nz; 
+    chi0 = par.chi0; chi1 = par.chi1; xi = par.xi; w = par.w;
+
+    % Define important boundaries for the d policy
+    d_zerodrift = - driftilliquid(0,grids.aaa,grids.zzz,par);
+    d_lower     = grids.aaa.*(par.chi0-1)/par.chi1;          
 
     % Set up solution object
     dpol = zeros(I,J,Nz);
@@ -15,25 +20,25 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,b,a,z,Rb,Ra, d_zerodrift, d_lower,p
             for bi = 1:I
 
                 % Generic test function & state-specific zero drift policy
-                tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
+                tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,par);
                 dzerod = d_zerodrift(bi,aj,zk);
 
                 % Policies already identified for this point in the state space i.e. bdot != 0 here
                 if bdrift_zero(bi,aj,zk) == 0
                     continue
 
-                % No-arbitrage consistent with positive deposit (d>0)
+                % d > 0 and illiquid up-drift i.e. no-arbitrage consistent with positive deposit
                 elseif tester(0,VaF(bi,aj,zk),1) < 0
 
                     % d cannot be too large because c would need to be
                     % negative to ensure zero liquid drift. Find the max
-                    dmax = max(roots([chi1/(2*a(aj)), chi0+1, -(Rb(bi,aj,zk)*b(bi) + (1-xi)*w*z(zk))]))-1e-12;
+                    dmax = max(roots([par.chi1/(2*a(aj)), par.chi0+1, -driftLiquid(0,0,b(bi),a(aj),z(zk),par)]))-1e-12;
 
                     bounds = [0,dmax];
                     fun    = @(x) tester(x,VaF(bi,aj,zk),1);
                     dpol(bi,aj,zk) = fzero(fun,bounds);
 
-                % d <= 0 and illiquid drift always up
+                % d <= 0 and illiquid up-drift
                 elseif dzerod < dlower
 
                     % d = 0 with illiquid up-drift
@@ -92,9 +97,9 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,b,a,z,Rb,Ra, d_zerodrift, d_lower,p
         
         for bi = 1:I
             
-            tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,Rb(bi,aj,zk),par);
-            dzerod = -(Ra(bi,aj,zk)*a(aj) + xi*w*z(zk));
-
+            tester = @(x,Va,positive) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,Va,positive,par);
+            dzerod = d_zerodrift(bi,aj,zk);
+            
             % Only consider points in the state space without an already
             % defined policy
             if bdrift_zero(bi,aj,zk) == 0
@@ -106,7 +111,7 @@ function dpol = bdotzero(bdrift_zero,VaF,VaB,b,a,z,Rb,Ra, d_zerodrift, d_lower,p
                 
                 if tester(dlower,VaB(bi,aj,zk),0) <= 0
                     bounds = [dlower,dzerod];
-                    fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,Rb(bi,aj,zk),par);
+                    fun    = @(x) FOC_bdotzero_resid(b(bi),a(aj),z(zk),x,VaB(bi,aj,zk),0,par);
                     dpol(bi,aj,zk) = fzero(fun,bounds);
                 else
                     dpol(bi,aj,zk) = dlower; % This should never happen (marginal destruction of value, will only seem right if VaB < 0)

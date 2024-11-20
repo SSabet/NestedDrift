@@ -14,8 +14,7 @@ function BB = driftMatrixLiquid(sb, bbb, par)
     Y            = -(X+Z);
     
     % Reshape inputs to long
-    longX = reshape(X,1,[]);
-    longZ = reshape(Z,1,[]);
+    longX = reshape(X,1,[]); longZ = reshape(Z,1,[]);
     
     % Build elements
     rows = [diag(2:end)     diag            diag(1:(end-1))];

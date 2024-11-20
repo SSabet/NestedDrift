@@ -1,4 +1,4 @@
-function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitch,grids,par)
+function [c,d,sb,sa,vNew,A] = updateHousehold(V,grids,par)
 
     % Unpack parameters and grids
     cellfun(@(x) assignin('caller', x, par.(x)), fieldnames(par));
@@ -6,13 +6,11 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     
     aaa = grids.aaa; bbb = grids.bbb; zzz = grids.zzz;
     
+    % Define important policies
+    d_zerodrift = - driftilliquid(0,aaa,zzz,par);
+
     % Preallocate
-    VbF = zeros(I,J,Nz);
-    VbB = zeros(I,J,Nz);
-    VaF = zeros(I,J,Nz);
-    VaB = zeros(I,J,Nz);
-    c_B = zeros(I,J,Nz);
-    c_F = zeros(I,J,Nz);
+    [VbF, VbB, VaF, VaB,c_B,c_F] = deal(zeros(I,J,Nz));
     
     % ---------------------------------------------------------------------
     % Policy update
@@ -40,74 +38,52 @@ function [c,d,sb,sa,vNew,A] = updateHousehold(V,Rb,Ra,d_zerodrift,d_lower,Bswitc
     d_FB(:,1,:) = d_zerodrift(:,1,:);
     d_BB(:,1,:) = d_zerodrift(:,1,:); 
 
-    % Idenfity whether the conditional deposit policy creates drift consistent with the conditions used
+    % Idenfity whether the conditional deposit policy creates illiquid drift consistent with the conditions used
     I_BB = (d_BB < d_zerodrift);
     I_BF = (d_BF > d_zerodrift);
     I_FF = (d_FF > d_zerodrift);
     I_FB = (d_FB < d_zerodrift);
 
     % Build deposit policy for backward liquid drift cases, using only consistent deposit policies
-    d_B = d_BF.*I_BF + d_BB.*I_BB + d_zerodrift.*(~I_BB .* ~I_BF);
+    d_B  = d_BF.*I_BF + d_BB.*I_BB + d_zerodrift.*(~I_BB .* ~I_BF);
     d_B(1,:,:) = 0; % This case will never be used, just over-writing a nan when updating d
     
     % Build backward liquid drift policy, and an indicator for when it's consitent with itself
-    sb_B = (1-xi)*w*zzz + Rb.*bbb - d_B -...
-        adjustmentCost(d_B,aaa, chi0, chi1) - c_B;
+    sb_B = driftLiquid(c_B,d_B,bbb,aaa,zzz,par);
     
     % At lower b-boundary don't use Vb_B; if Vb_F dosn't work, leave it to the next part that deals with b-drift zero
-    I_B = sb_B < 0; 
-    I_B(1,:,:) = 0;
+    I_B  = (sb_B < 0); I_B(1,:,:) = 0;
 
-    % ...and equivalents for forward liquid drift case
-    d_F = d_FF.*I_FF + d_FB.*I_FB + d_zerodrift.*(~I_FB .* ~I_FF);
-    d_F(I,:,:) = 0; 
-    sb_F = (1-xi)*w*zzz + Rb.*bbb - d_F -...
-        adjustmentCost(d_F,aaa, chi0, chi1) - c_F;
-    I_F = (sb_F > 0) .* (I_B==0); % Giving precedence to the backward drift if there's a clash
+    % ...and equivalents for the forward liquid drift case
+    d_F  = d_FF.*I_FF + d_FB.*I_FB + d_zerodrift.*(~I_FB .* ~I_FF); d_F(I,:,:) = 0;
+    sb_F = driftLiquid(c_F,d_F,bbb,aaa,zzz,par);
+    I_F  = (sb_F > 0) .* (I_B==0); % Giving precedence to the backward drift if there's a clash
     I_F(I,:,:) = 0;
     
-    % Find consumption and deposit policies for the case of zero liquid drift
-    I_0 = 1 - I_B - I_F;
-    d_0 = bdotzero(I_0,VaF,VaB,b,a,z,Rb,Ra,d_zerodrift,d_lower,par);
-    c_0 = (1-xi)*w*zzz + Rb.*bbb - d_0 - adjustmentCost(d_0, aaa, chi0, chi1);
+    % ...and for the zero liquid drift case
+    I_0  = 1 - I_B - I_F;
+    d_0  = bdotzero(I_0,VaF,VaB,grids,par);
+    c_0  = driftLiquid(0,d_0,bbb,aaa,zzz,par);
 
-    % Check that the zerodrift policy leads to MU(c) between the forward
-    % and backward derivatives
-    mu_check = ((MU(c_0,par) >= VbF) & (MU(c_0,par) <= VbB)).*I_0 + (1-I_0);
-    assert(all(reshape(mu_check(2:I-1,:,:),1,[])) == 1, 'Error: MU(c_0) is not within the bounds of VbF and VbB at interior points!')
-    
-    % Build unconditional policies
-    c  = c_F.*I_F + c_B.*I_B + c_0.*I_0;
-    d  = d_F.*I_F + d_B.*I_B + d_0.*I_0;
-    sb = (1-xi)*w*zzz + Rb.*bbb - c - d - adjustmentCost(d, aaa, chi0, chi1);
-    sa = Ra.*aaa + xi .* w .* zzz + d;
-        
-    % if (sum(sum(sum(I_0<0)))>0)
-    %     fprintf('There are elements with both I_F & I_B positive. V not concave in b? \n')
-    %     [iii, jjj, kkk] =  ind2sub(size(I_0), find(I_0 < 0));
-    %     not_ccv_indexes = [find(I_0 < 0), iii, jjj, kkk];    % 
-    % end
-    % 
-    % if (sum(sum(sum(VbB<0)))>0)
-    %     fprintf('There are elements with VbB < 0. V not concave in b? \n') 
-    %     [iii, jjj, kkk] =  ind2sub(size(VbB), find(VbB < 0));
-    %      neg_Vb_indexes = [find(VbB < 0), iii, jjj, kkk];
-    % end
+    % Combine to build unconditional policies
+    c    = c_F.*I_F + c_B.*I_B + c_0.*I_0;
+    d    = d_F.*I_F + d_B.*I_B + d_0.*I_0;
+    sb   = driftLiquid(c,d,bbb,aaa,zzz,par);
+    sa   = driftilliquid(d,aaa,zzz,par);
+
+    % *********************************************************************
+    % For interest: show that the zerodrift policy leads to MU(c) between 
+    % the forward and backward derivatives (proof in appendix to the paper)
+    % mu_check = ((MU(c_0,par) >= VbF) & (MU(c_0,par) <= VbB)).*I_0 + (1-I_0);
+    % assert(all(reshape(mu_check(2:I-1,:,:),1,[])), ...
+    %     'Error: MU(c_0) is not within the bounds of VbF and VbB at interior points!')
+    % *********************************************************************
     
     % ---------------------------------------------------------------------
     % Value update
     
     % Build transition matrix
-    A  = driftMatrixLiquid(sb,bbb,par) + driftMatrixIlliquid(sa,aaa,par) + Bswitch;
-    
-    % if max(abs(sum(A,2)))>10^(-12)
-    % 
-    %     disp('Improper Transition Matrix')
-    %     [ii, jj, kk] =  ind2sub(size(V), find(abs(sum(A,2))>10^(-12)));
-    %     Improper_entries = [find(abs(sum(A,2)) > 10^(-12)), ii, jj, kk];
-    % 
-    %     break
-    % end
+    A  = driftMatrixLiquid(sb,bbb,par) + driftMatrixIlliquid(sa,aaa,par) + par.Bswitch;
     
     % Build update objects
     B         = (1/Delta + rho)*speye(I*J*Nz) - A;

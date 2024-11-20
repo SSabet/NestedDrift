@@ -33,7 +33,5 @@ function grids = makegrids(par)
 
     % Combined grids
     [grids.aaa, grids.bbb, grids.zzz] = meshgrid(grids.a,grids.b,z);
-
     
-
 end

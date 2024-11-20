@@ -5,160 +5,182 @@
 % ------------------------------------------------------------------------------
 % Consumption policies
  
-figure(1)
-set(gcf,'PaperPosition',[0 0 16 9])
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
+
 subplot(1,2,1)
-surf(b,a,c(:,:,1)','EdgeAlpha',0.1)
+surf(grids.b,grids.a,sol.c(:,:,1)','EdgeAlpha',0.1)
 set(gca,'FontSize',9)
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Consumption, Low Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Low Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-surf(b,a,c(:,:,2)','EdgeAlpha',0.1)
+surf(grids.b,grids.a,sol.c(:,:,2)','EdgeAlpha',0.1)
 set(gca,'FontSize',9)
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Consumption, High Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('High Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_consumption','-dpng')
+exportgraphics(gcf,'plot_consumption.pdf','BackgroundColor','none')
 
 % ------------------------------------------------------------------------------
 % Deposit policies
 
-figure(2)
-set(gcf,'PaperPosition',[0 0 16 9])
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
+
 subplot(1,2,1)
-surf(b,a,d(:,:,1)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.d(:,:,1)','EdgeAlpha',0.2)
 set(gca,'FontSize',9)
 view([-70 30])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Deposits, Low Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Deposits, Low Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-surf(b,a,d(:,:,2)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.d(:,:,2)','EdgeAlpha',0.2)
 set(gca,'FontSize',9)
 view([-70 30])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Deposits, High Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Deposits, High Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_deposit','-dpng')
+exportgraphics(gcf,'plot_deposit.pdf','BackgroundColor','none')
 
 % ------------------------------------------------------------------------------
 % Liquid saving policies
 
-figure(3)
-set(gcf,'PaperPosition',[0 0 16 9])
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
+
 subplot(1,2,1)
-surf(b,a,sb(:,:,1)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.sb(:,:,1)','EdgeAlpha',0.2)
 view([-40 20])
 set(gca,'FontSize',9)
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Liquid Savings, Low Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Liquid Savings, Low Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex', 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-surf(b,a,sb(:,:,2)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.sb(:,:,2)','EdgeAlpha',0.2)
 view([-40 20])
 set(gca,'FontSize',9)
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Liquid Savings, High Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Liquid Savings, High Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_liquidSaving','-dpng')
+exportgraphics(gcf,'plot_liquidSaving.pdf','BackgroundColor','none')
 
 % ------------------------------------------------------------------------------
 % Illiquid saving policies
 
-figure(4)
-set(gcf,'PaperPosition',[0 0 16 9])
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
+
 subplot(1,2,1)
-surf(b,a,sa(:,:,1)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.sa(:,:,1)','EdgeAlpha',0.2)
 set(gca,'FontSize',9)
 view([-40 20])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-title('Illiquid Savings, Low Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+title('Illiquid Savings, Low Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-surf(b,a,sa(:,:,2)','EdgeAlpha',0.2)
+surf(grids.b,grids.a,sol.sa(:,:,2)','EdgeAlpha',0.2)
 set(gca,'FontSize',9)
 view([-40 20])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Illiquid Savings, High Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Illiquid Savings, High Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_illiqduisSaving','-dpng')
+exportgraphics(gcf,'plot_illiqduisSaving.pdf','BackgroundColor','none')
 
 % ------------------------------------------------------------------------------
 % Distributions
 
-figure(5)
-set(gcf,'PaperPosition',[0 0 16 9])
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
 
 subplot(1,2,1)
-surf(b,a,g(:,:,1)','EdgeAlpha',0.1)
+surf(grids.b,grids.a,sol.g(:,:,1)','EdgeAlpha',0.1)
 set(gca,'FontSize',9)
 view([-70 30])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-title('Stationary Distribution, Low Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+zlim([0,inf])
+title('Stationary Distribution, Low Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-surf(b,a,g(:,:,2)',EdgeAlpha=0.1)
+surf(grids.b,grids.a,sol.g(:,:,2)',EdgeAlpha=0.1)
 set(gca,'FontSize',9)
 view([-70 30])
-xlabel('Liquid, b')
-ylabel('Illiquid, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Stationary Distribution, High Type')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+zlim([0,inf])
+title('Stationary Distribution, High Type','Interpreter','latex')
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_distribution','-dpng')
+exportgraphics(gcf,'plot_distribution.pdf','BackgroundColor','none')
 
 % ------------------------------------------------------------------------------
 % Phase diagrams overlaid with density contour
 
-figure(10)
-set(gcf,'PaperPosition',[0 0 16 9])
-gsig = g .* (g>1e-10);
-sc = 3; % Determines density of arrows on plot
+figure()
+set(gcf,'Units','centimeters','Position',[20 10 16 9]);
+
+gsig = sol.g .* (sol.g>1e-10);
+sc   = 3; % Determines density of arrows on plot
+
 subplot(1,2,1)
-quiver(bbb(1:sc:end,1:sc:end,1), aaa(1:sc:end,1:sc:end,1), sb(1:sc:end,1:sc:end,1), sa(1:sc:end,1:sc:end,1),0)
+quiver(grids.bbb(1:sc:end,1:sc:end,1), grids.aaa(1:sc:end,1:sc:end,1), sol.sb(1:sc:end,1:sc:end,1), sol.sa(1:sc:end,1:sc:end,1),0)
 hold on
-contour(b,a,gsig(:,:,1)')
-xlabel('Liquid Wealth, b')
-ylabel('Illiquid Wealth, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Phase diagram, Low Type')
+contour(grids.b,grids.a,gsig(:,:,1)')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Phase diagram, Low Type','Interpreter','latex')
 hold off
+set(gca, 'TickLabelInterpreter', 'latex');
 
 subplot(1,2,2)
-quiver(bbb(1:sc:end,1:sc:end,2), aaa(1:sc:end,1:sc:end,2), sb(1:sc:end,1:sc:end,2), sa(1:sc:end,1:sc:end,2),0)
+quiver(grids.bbb(1:sc:end,1:sc:end,2), grids.aaa(1:sc:end,1:sc:end,2), sol.sb(1:sc:end,1:sc:end,2), sol.sa(1:sc:end,1:sc:end,2),0)
 hold on
-contour(b,a,gsig(:,:,2)')
-xlabel('Liquid Wealth, b')
-ylabel('Illiquid Wealth, a')
-xlim([bmin bmax])
-ylim([amin amax])
-title('Phase diagram, High Type')
+contour(grids.b,grids.a,gsig(:,:,2)')
+xlabel('b','Interpreter','latex')
+ylabel('a','Interpreter','latex')
+xlim([par.bmin par.bmax])
+ylim([par.amin par.amax])
+title('Phase diagram, High Type','Interpreter','latex')
 hold off
+set(gca, 'TickLabelInterpreter', 'latex');
 
-print('plot_phaseDiagrams','-dpng')
+exportgraphics(gcf,'plot_phaseDiagrams.pdf','BackgroundColor','none')
